@@ -196,12 +196,16 @@ You need Node.js 22 or later (24 is what we use).
 
 ### Releasing
 
-1. Raise `version` in `package.json` (`npm version <x.y.z> --no-git-tag-version`) in a pull request into `dev`.
-2. Open a pull request from `dev` into `prod` and merge it with a merge commit.
-3. On `prod`, GitHub Actions' `release` workflow (`.github/workflows/release.yml`) runs the checks, publishes that
-   version to npm with provenance, tags `v<version>` and attaches the package to its GitHub release. npm trusts this
-   workflow by OIDC (Trusted Publishing on npmjs.com), so no token or password is kept anywhere.
-4. Within the hour, [rimontohq/homebrew-tap](https://github.com/rimontohq/homebrew-tap)'s `bump` workflow moves the
+A merge into `dev` that raises the version is the release; nobody publishes by hand.
+
+1. A pull request that changes what users get (`src/`, `spec/`, the build) raises `version` in `package.json`:
+   `npm version patch --no-git-tag-version` for a fix, `minor` for a new command, flag or behaviour, `major` for
+   something that breaks how people use it. Woodpecker's check `version` fails a pull request that forgets; tests, CI,
+   docs and dev dependencies need no new version.
+2. On the merge into `dev`, GitHub Actions' `release` workflow (`.github/workflows/release.yml`) runs the checks,
+   publishes that version to npm with provenance, tags `v<version>` and attaches the package to its GitHub release. npm
+   trusts this workflow by OIDC (Trusted Publishing on npmjs.com), so no token or password is kept anywhere.
+3. Within the hour, [rimontohq/homebrew-tap](https://github.com/rimontohq/homebrew-tap)'s `bump` pipeline moves the
    formula to it, after auditing, installing and testing it.
 
 ```sh
