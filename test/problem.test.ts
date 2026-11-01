@@ -39,7 +39,7 @@ describe('describeFailure', () => {
 
   it('recognises a web page or a redirect in front of the API', () => {
     expect(describeFailure(res(403, '<html>Sign in</html>', 'text/html; charset=utf-8'), ctx)[0]).toMatch(/the answer is a web page, not the API/);
-    const lines = describeFailure(res(302, '', 'text/plain', { location: 'https://login.example.com/x' }), ctx);
+    const lines = describeFailure(res(302, '', 'text/plain', { location: 'https://login.example.com/x?token=long&meta=more' }), ctx);
     expect(lines[0]).toBe('rimonto: the API address redirects (302 to https://login.example.com/x)');
     expect(lines[2]).toMatch(/sign-in page in front of the API/);
   });
