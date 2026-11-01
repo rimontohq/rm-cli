@@ -83,7 +83,7 @@ Command names follow the API's paths:
 | `POST /tickets` | `rimonto tickets create` |
 | `GET /tickets` | `rimonto tickets list` |
 | `GET /tickets/{id}` | `rimonto tickets get <id>` |
-| `PATCH /tickets/{id}` | `rimonto tickets update <id>` |
+| `PATCH /customers/{id}` | `rimonto customers update <id>` |
 | `POST /tickets/{id}:set-status` | `rimonto tickets set-status <id>` |
 | `POST /stores/{store_id}/stock:adjust` | `rimonto stores stock adjust <store-id>` |
 | `GET /whoami` | `rimonto whoami` |
@@ -118,8 +118,10 @@ JSON as it came, so you can use `jq`:
 rimonto tickets list --status ready | jq -r '.tickets[].number'
 ```
 
-`--json` and `--human` choose one or the other anywhere. `--columns number,status,total_minor` picks a table's
-columns.
+A table starts with what you read (the number or name, the status, who, what, money, a date) and ends with the
+id, always whole, so you can paste it into the next command. When it is wider than the terminal, long names are
+shortened with `…`, then the last columns are left out. `--columns number,customer_name,amount_due_minor` picks the columns
+yourself. `--json` and `--human` choose one output or the other anywhere.
 
 Lists come a page at a time. `--all` reads every page; `--limit 100` stops after 100 rows. `--page-size` and
 `--page-token` work as in the API. The JSON keeps the shape of one page (`{"tickets": [...]}`), with

@@ -22,8 +22,8 @@ export interface Caller {
 
 const PORTAL = 'https://developers.rimonto.app';
 
-/** What a key acts as, as label/value lines. */
-export function describeCaller(w: Caller): [string, string][] {
+/** What a key acts as, as label/value lines; stores by name when `storeNames` has them. */
+export function describeCaller(w: Caller, storeNames: Map<string, string> = new Map()): [string, string][] {
   const out: [string, string][] = [];
   if (w.kind === 'api_key' && w.api_key) out.push(['Key name', w.api_key.name]);
   else if (w.kind === 'person') out.push(['Signed in', 'as a person']);
@@ -32,7 +32,8 @@ export function describeCaller(w: Caller): [string, string][] {
   if (w.roles?.length) out.push(['May do', `what ${w.roles.join(', ')} may`]);
   if (w.company_id) out.push(['Company', w.company_id]);
   if (w.all_stores) out.push(['Stores', 'all stores, today\'s and new ones']);
-  else if (w.store_ids) out.push(['Stores', w.store_ids.length ? `${w.store_ids.length}: ${w.store_ids.join(', ')}` : 'none']);
+  else if (w.store_ids?.length === 1) out.push(['Store', storeNames.get(w.store_ids[0]!) ?? w.store_ids[0]!]);
+  else if (w.store_ids) out.push(['Stores', w.store_ids.length ? w.store_ids.map((id) => storeNames.get(id) ?? id).join('; ') : 'none']);
   return out;
 }
 
@@ -43,15 +44,41 @@ const lines = (pairs: [string, string][], indent = '') => {
 
 const ok = (res: HttpResponse) => res.status >= 200 && res.status < 300;
 
+/** `/Users/ana/.config/rimonto/config.json` → `~/.config/rimonto/config.json`. */
+export function tildePath(path: string, home: string): string {
+  if (!home) return path;
+  const h = home.replace(/[\\/]+$/, '');
+  return path === h ? '~' : path.startsWith(`${h}/`) || path.startsWith(`${h}\\`) ? `~${path.slice(h.length)}` : path;
+}
+
+/** The names of a key's stores (`Fix-It Lab, Brooklyn`) from GET /stores; none when the API has no such read. */
+async function storeNamesFor(s: Session, key: string, w: Caller): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  if (w.all_stores || !w.store_ids?.length) return names;
+  try {
+    const res = await s.call({ method: 'GET', path: '/stores', apiKey: key });
+    const stores = ok(res) && typeof res.json === 'object' && res.json !== null ? (res.json as { stores?: unknown }).stores : undefined;
+    if (Array.isArray(stores)) {
+      for (const st of stores as { id?: string; name?: string; city?: string }[]) {
+        if (st.id && st.name) names.set(st.id, st.city ? `${st.name}, ${st.city}` : st.name);
+      }
+    }
+  } catch {
+    // the ids will do
+  }
+  return names;
+}
+
 export async function login(s: Session, line: ParsedLine): Promise<number> {
   if (line.positionals.length) throw new UsageError(`unexpected argument "${line.positionals[0]}"`, 'Usage: rimonto login [--with-key] [--profile <name>]');
   const { io, ctx } = s;
   let key: string;
-  if (line.occurrences.some((o) => o.name === 'with-key')) {
+  const asked = !line.occurrences.some((o) => o.name === 'with-key');
+  if (!asked) {
     key = (await readAll(io.stdin)).trim();
   } else if (io.stdin.isTTY) {
     io.stderr.write(`Signing in to ${ctx.apiUrl} (profile "${ctx.profileName}").\n`);
-    io.stderr.write(`An owner makes API keys in the developer portal, ${PORTAL}, under API keys.\n`);
+    io.stderr.write(`An owner makes keys at ${PORTAL} → API keys.\n`);
     key = (await readHidden('API key: ', io.stdin, io.stderr)).trim();
   } else {
     throw new UsageError('there is no terminal to ask for the key', 'Pipe it in instead: rimonto login --with-key < key.txt');
@@ -85,9 +112,11 @@ export async function login(s: Session, line: ParsedLine): Promise<number> {
   if (s.mode === 'json') {
     s.out(JSON.stringify({ profile: ctx.profileName, api_url: ctx.apiUrl, key: maskKey(key), whoami: res.json }, null, 2));
   } else {
-    s.out(`Signed in to ${ctx.apiUrl} with ${maskKey(key)} (profile "${ctx.profileName}").`);
-    for (const l of lines(describeCaller((res.json ?? {}) as Caller), '  ')) s.out(l);
-    s.out(`Saved in ${s.configPath}${s.globals.headers.length ? `, with ${s.globals.headers.length} extra header(s)` : ''}.`);
+    // When it asked for the key, the first line already named the address and the profile.
+    s.out(asked ? `Signed in with ${maskKey(key)}.` : `Signed in to ${ctx.apiUrl} with ${maskKey(key)} (profile "${ctx.profileName}").`);
+    const caller = (res.json ?? {}) as Caller;
+    for (const l of lines(describeCaller(caller, await storeNamesFor(s, key, caller)), '  ')) s.out(l);
+    s.out(`Saved in ${tildePath(s.configPath, io.homedir)}${s.globals.headers.length ? `, with ${s.globals.headers.length} extra header(s)` : ''}.`);
   }
   if (ctx.keySource === 'env') s.err('Note: RIMONTO_API_KEY is set, and it is used instead of the saved key while it is.');
   return EXIT.ok;
@@ -101,7 +130,7 @@ export async function logout(s: Session): Promise<number> {
   delete profile.api_key;
   if (!Object.keys(profile).length) delete config.profiles[name];
   writeConfig(s.configPath, config);
-  s.out(`Signed out of profile "${name}": its key is removed from ${s.configPath}.`);
+  s.out(`Signed out of profile "${name}": its key is removed from ${tildePath(s.configPath, s.io.homedir)}.`);
   s.out('The key itself keeps working until an owner revokes it in the developer portal (API keys).');
   if (s.ctx.keySource === 'env') s.err('Note: RIMONTO_API_KEY is still set, and commands use it.');
   return EXIT.ok;

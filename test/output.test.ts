@@ -24,15 +24,15 @@ describe('tables', () => {
     { id: 'b2', company_id: 'c', store_id: 's', number: 'T-2042', problem: 'Battery', status: 'new', currency: 'EUR', deposit_minor: 1000, total_minor: 8900, created_at: '2026-11-01T10:30:00Z', checks: [], tech_note: '' },
   ];
 
-  it('picks the id, number, names, status, money and a time, and hides foreign ids', () => {
-    expect(pickColumns(Object.keys(tickets[0]!), tickets)).toEqual(['id', 'number', 'problem', 'status', 'total_minor', 'deposit_minor', 'created_at', 'tech_note']);
+  it('picks number, status, who, what, one money, one date, then the rest, and the id last; foreign ids hidden', () => {
+    expect(pickColumns(Object.keys(tickets[0]!), tickets)).toEqual(['number', 'status', 'total_minor', 'created_at', 'problem', 'tech_note', 'id']);
   });
 
   it('aligns columns, formats money with each row\'s currency, and right-aligns numbers', () => {
     expect(renderTable(tickets, opts)).toBe([
-      'ID  NUMBER  PROBLEM  STATUS       TOTAL    DEPOSIT  CREATED AT        TECH NOTE',
-      'a1  T-2041  Screen   ready   129.00 USD   0.00 USD  2026-11-01 09:00  line one line two',
-      'b2  T-2042  Battery  new      89.00 EUR  10.00 EUR  2026-11-01 10:30  -',
+      'NUMBER  STATUS       TOTAL  CREATED AT        PROBLEM  TECH NOTE          ID',
+      'T-2041  ready   129.00 USD  2026-11-01 09:00  Screen   line one line two  a1',
+      'T-2042  new      89.00 EUR  2026-11-01 10:30  Battery  -                  b2',
     ].join('\n'));
   });
 
@@ -41,17 +41,77 @@ describe('tables', () => {
     expect(renderTable(rows, { ...opts, columns: ['customer.name', 'tags'] })).toBe('CUSTOMER NAME  TAGS\nAna            vip, b2b');
   });
 
-  it('drops columns from the right to fit the terminal', () => {
-    const out = renderTable(tickets, { ...opts, width: 30 });
-    expect(out.split('\n')[0]).toBe('ID  NUMBER  PROBLEM  STATUS');
-  });
-
   it('says so when a list is empty', () => {
     expect(renderTable([], opts)).toBe('(none)');
   });
 
   it('renders a list answer as its table', () => {
-    expect(renderHuman({ tickets: [{ id: 'x', status: 'new' }], next_page_token: 't' }, opts)).toBe('ID  STATUS\nx   new');
+    expect(renderHuman({ tickets: [{ id: 'x', status: 'new' }], next_page_token: 't' }, opts)).toBe('STATUS  ID\nnew     x');
+  });
+});
+
+const heads = (lines: string[]) => lines[0]!.split(/ {2,}/);
+
+describe('fitting a table to the terminal', () => {
+  // As GET /tickets answers: the API's own fields, and the money and names it adds.
+  const ready = [
+    ['943d8f26-1609-527c-a4cc-587c5876836c', 'T-2039', 'Omar Haddad', 'Samsung Galaxy A54', 'Cracked screen', 8601],
+    ['22e02533-09fa-571d-aef9-94f6457a88c6', 'T-2038', 'Chen Wei', 'Apple iPad Air 5', 'Battery', 7512],
+    ['3e5cd3e8-cd9f-54de-8a50-3736a7ea5616', 'T-2031', 'Bartholomew Featherstonehaugh', 'Apple iPhone 14 Pro Max', 'Water damage', 16222],
+  ].map(([id, number, customer, device, problem, due]) => ({
+    id, company_id: 'c', store_id: 's', number, customer_id: 'u', customer_name: customer, device_name: device, problem, status: 'ready',
+    currency: 'USD', amount_due_minor: due, total_with_tax_minor: due, due_at: '2026-11-01T01:42:00Z', due_all_day: true, created_at: '2026-10-30T09:00:00Z',
+  }));
+  const table = (width: number) => renderTable(ready, { ...opts, width }).split('\n');
+
+  it('at 120 columns: everything it picked, the longest free text shortened with …, the id whole and last', () => {
+    expect(table(120)).toEqual([
+      'NUMBER  STATUS  CUSTOMER NAME  DEVICE NAME   AMOUNT DUE  DUE AT      PROBLEM        ID',
+      'T-2039  ready   Omar Haddad    Samsung Gal…   86.01 USD  2026-11-01  Cracked scre…  943d8f26-1609-527c-a4cc-587c5876836c',
+      'T-2038  ready   Chen Wei       Apple iPad …   75.12 USD  2026-11-01  Battery        22e02533-09fa-571d-aef9-94f6457a88c6',
+      'T-2031  ready   Bartholomew …  Apple iPhon…  162.22 USD  2026-11-01  Water damage   3e5cd3e8-cd9f-54de-8a50-3736a7ea5616',
+    ]);
+  });
+
+  it('at 80 columns: drops the last columns once free text is as short as it goes; the rest grow back', () => {
+    expect(table(80)).toEqual([
+      'NUMBER  STATUS  CUSTOMER NAME               ID',
+      'T-2039  ready   Omar Haddad                 943d8f26-1609-527c-a4cc-587c5876836c',
+      'T-2038  ready   Chen Wei                    22e02533-09fa-571d-aef9-94f6457a88c6',
+      'T-2031  ready   Bartholomew Featherstoneh…  3e5cd3e8-cd9f-54de-8a50-3736a7ea5616',
+    ]);
+    expect(table(100)[0]).toBe('NUMBER  STATUS  CUSTOMER NAME     DEVICE NAME       AMOUNT DUE  ID');
+  });
+
+  it('at 60 columns: the number, the status and the id', () => {
+    expect(table(60)).toEqual([
+      'NUMBER  STATUS  ID',
+      'T-2039  ready   943d8f26-1609-527c-a4cc-587c5876836c',
+      'T-2038  ready   22e02533-09fa-571d-aef9-94f6457a88c6',
+      'T-2031  ready   3e5cd3e8-cd9f-54de-8a50-3736a7ea5616',
+    ]);
+  });
+
+  it('keeps the first column and the id even when they do not fit', () => {
+    expect(heads(table(30))).toEqual(['NUMBER', 'ID']);
+  });
+
+  it('keeps every column asked for with --columns, shortening only free text', () => {
+    const lines = renderTable(ready, { ...opts, width: 50, columns: ['number', 'customer_name', 'device_name', 'due_at'] }).split('\n');
+    expect(lines).toEqual([
+      'NUMBER  CUSTOMER NAME   DEVICE NAME     DUE AT',
+      'T-2039  Omar Haddad     Samsung Galax…  2026-11-01',
+      'T-2038  Chen Wei        Apple iPad Ai…  2026-11-01',
+      'T-2031  Bartholomew F…  Apple iPhone …  2026-11-01',
+    ]);
+  });
+});
+
+describe('all-day times', () => {
+  it('shows only the date when the record says the time is all day', () => {
+    const row = { due_at: '2026-11-01T01:42:00Z', due_all_day: true, created_at: '2026-11-01T01:42:00Z' };
+    expect(renderRecord(row, opts)).toBe('due_at:       2026-11-01\ndue_all_day:  yes\ncreated_at:   2026-11-01 01:42');
+    expect(renderRecord({ ...row, due_all_day: false }, opts).split('\n')[0]).toBe('due_at:       2026-11-01 01:42');
   });
 });
 

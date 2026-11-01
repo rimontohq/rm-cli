@@ -2,6 +2,7 @@ import { chmodSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'n
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { tildePath } from '../src/auth.ts';
 import { configPath, maskKey, readConfig, writeConfig } from '../src/config.ts';
 import { DEFAULT_API_URL, parseHeader, parseHeadersEnv, resolveContext } from '../src/context.ts';
 import { CliError, UsageError } from '../src/errors.ts';
@@ -47,6 +48,13 @@ describe('the config file', () => {
     const dir = temp();
     writeConfig(join(dir, 'config.json'), { profiles: {} });
     expect(readFileSync(join(dir, 'config.json'), 'utf8')).toBe('{\n  "profiles": {}\n}\n');
+  });
+
+  it('shows the config file under the home folder as ~', () => {
+    expect(tildePath('/Users/ana/.config/rimonto/config.json', '/Users/ana')).toBe('~/.config/rimonto/config.json');
+    expect(tildePath('/Users/anabel/x', '/Users/ana')).toBe('/Users/anabel/x');
+    expect(tildePath('C:\\Users\\ana\\AppData\\Roaming\\rimonto\\config.json', 'C:\\Users\\ana')).toBe('~\\AppData\\Roaming\\rimonto\\config.json');
+    expect(tildePath('/etc/rimonto.json', '/Users/ana')).toBe('/etc/rimonto.json');
   });
 
   it('masks a key down to its last four characters', () => {
