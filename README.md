@@ -111,6 +111,7 @@ rimonto api /tickets -q status=ready --paginate
 - **Everything else** (objects, lists of objects) goes in `--data` as JSON: the JSON itself, `@file.json`, or `-` to
   read stdin. Flags override the same keys in `--data`.
 - **Money** is in minor units, as the API takes it: `--price-minor 2500` is 25.00.
+- **A negative number** is a value, not a flag: `--delta -2`.
 
 The CLI checks the required fields before it sends anything.
 
@@ -193,6 +194,7 @@ Homebrew formula in [rimontohq/homebrew-tap](https://github.com/rimontohq/homebr
 npm install
 npm start -- --help          # run from source
 npm run check                # lint, typecheck, tests, the command table is current, the build
+npm test                     # the tests alone: unit, contract and smoke
 npm run build                # dist/rimonto.js, one file with no dependencies
 ```
 
@@ -208,6 +210,38 @@ Commit both files. A test fails when the table does not match the spec, and anot
 the same command.
 
 `npm run compile` makes standalone executables with Bun, one per platform, in `dist/bin/`.
+
+### Tests
+
+`npm test` needs no server:
+
+- **Unit tests** of each part: arguments, output, paging, errors, sign-in.
+- **Contract tests** (`test/contract.test.ts`): every command of the table, new ones included as soon as they are
+  generated. Each one runs with a command line made from the spec's schemas (its required input, then every flag),
+  and the request it sends is checked against its operation in `spec/openapi.json`: the method, the path, the query,
+  the headers (`Authorization`, `Idempotency-Key` exactly where the operation takes one) and the body, by JSON Schema.
+  The answer, made from the operation's success schema, must print as JSON and for people. A missing required input
+  must stop the CLI before it sends anything.
+- **Smoke test** (`test/smoke.test.ts`): builds `dist/rimonto.js` and runs it alone, as a separate process.
+
+`npm run e2e` runs the CLI against a real core, as a person would: reads, paging, a customer it makes twice with one
+idempotency key and then erases, a table, and the errors (a person-only command, a wrong key, no API). It prints one
+line per check (`ok …` or `FAIL …`) and exits 0 when all pass, 1 when any fails, 2 when it cannot start.
+
+```sh
+RIMONTO_E2E_API_URL=http://localhost:5280 RIMONTO_E2E_KEY=rimonto_sk_… npm run e2e
+```
+
+| Variable | Required | What it is |
+|---|---|---|
+| `RIMONTO_E2E_API_URL` | yes | core's address |
+| `RIMONTO_E2E_KEY` | yes | a manager API key of the demo company, Fix-It Lab, for all its stores |
+| `RIMONTO_E2E_HEADERS` | no | extra headers, passed on as `RIMONTO_HEADERS` (a gate in front of core) |
+| `RIMONTO_E2E_CLI` | no | the `rimonto.js` to test; by default this checkout is built and tested |
+
+rm-cli's own CI does not run it: it has no core. The panel's api e2e does, on a fresh local Supabase with the demo
+data and core. To run it on a computer, start the backend (rm-app-backend's README), sign in as the demo owner, make a
+manager key with `POST /api-keys`, and revoke it afterwards.
 
 ## License
 
