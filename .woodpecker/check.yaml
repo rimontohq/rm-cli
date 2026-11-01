@@ -1,5 +1,7 @@
 # The CLI's checks: every pull request, and every push to dev and prod.
-#   lint · typecheck · tests · the command table matches spec/openapi.json · the build, which then runs
+#   lint · typecheck · tests (unit; contract: every command against spec/openapi.json; smoke: the built bundle) ·
+#   the command table matches spec/openapi.json · the build, which then runs.
+# Not here: `npm run e2e`, which needs a real core; the panel's api e2e runs it.
 # rimonto-ci:local is the CI's runner image (Node 24).
 when:
   - event: pull_request

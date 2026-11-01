@@ -87,13 +87,37 @@ export interface ParsedLine {
   positionals: string[];
 }
 
+const NEGATIVE_NUMBER = /^-(\d|\.\d)/;
+
+/**
+ * `--delta -2` as `--delta=-2`: a value flag followed by a negative number takes it as its value. parseArgs would
+ * refuse it as ambiguous, and no flag starts with a digit.
+ */
+function joinNegativeValues(argv: string[], flags: FlagSpec[]): string[] {
+  const takesValue = new Set(flags.filter((f) => f.type === 'string').flatMap((f) => [`--${f.name}`, ...(f.short ? [`-${f.short}`] : [])]));
+  const out: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i]!;
+    if (a === '--') {
+      out.push(...argv.slice(i));
+      break;
+    }
+    const next = argv[i + 1];
+    if (takesValue.has(a) && next !== undefined && NEGATIVE_NUMBER.test(next)) {
+      out.push(`${a}${a.startsWith('--') ? '=' : ''}${next}`);
+      i++;
+    } else out.push(a);
+  }
+  return out;
+}
+
 /** Parses argv against these flags; an unknown flag is a usage error with the closest known one. */
 export function parseLine(argv: string[], flags: FlagSpec[]): ParsedLine {
   const options: Record<string, { type: 'string' | 'boolean'; short?: string; multiple?: boolean }> = {};
   for (const f of flags) options[f.name] = { type: f.type, ...(f.short ? { short: f.short } : null), multiple: true };
   let tokens;
   try {
-    tokens = parseArgs({ args: argv, options, strict: true, allowPositionals: true, tokens: true }).tokens;
+    tokens = parseArgs({ args: joinNegativeValues(argv, flags), options, strict: true, allowPositionals: true, tokens: true }).tokens;
   } catch (err) {
     const e = err as { code?: string; message: string };
     if (e.code === 'ERR_PARSE_ARGS_UNKNOWN_OPTION') {
