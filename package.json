@@ -1,6 +1,7 @@
 {
   "name": "rimonto",
   "version": "0.1.0",
+  "private": true,
   "description": "Rimonto's command line: your repair shop's API from a terminal",
   "license": "MIT",
   "type": "module",
@@ -11,7 +12,7 @@
     "dist/rimonto.js"
   ],
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "repository": {
     "type": "git",

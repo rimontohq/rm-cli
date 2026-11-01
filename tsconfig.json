@@ -1,6 +1,6 @@
 {
   // Node runs the .ts files directly in development (type stripping), and esbuild bundles src/main.ts into
-  // dist/rimonto.js for Node 20 and later. So: only erasable syntax, and imports keep their .ts extension.
+  // dist/rimonto.js for Node 22 and later. So: only erasable syntax, and imports keep their .ts extension.
   "compilerOptions": {
     "target": "es2023",
     "module": "nodenext",
