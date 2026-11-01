@@ -9,7 +9,7 @@ names.
 
 ## Install
 
-You need Node.js 20 or later.
+You need Node.js 22 or later.
 
 ```sh
 npm install -g rimonto
@@ -178,7 +178,8 @@ you give it in the profile.
 
 ## Contributing
 
-You need Node.js 22 or later (24 is what we use).
+You need Node.js 22 or later (24 is what we use). The package is marked private until its first release: nothing
+is published to npm before then.
 
 ```sh
 npm install

@@ -164,6 +164,91 @@ describe('generate on other documents', () => {
     expect(fields.map((f) => [f.name, f.flag])).toEqual([['data', undefined], ['json', undefined], ['name', 'name']]);
   });
 
+  it('merges allOf ($ref base + extra fields), as the API writes its summary and detail schemas', () => {
+    const t = generate({
+      openapi: '3.1.0',
+      info: { version: '1' },
+      paths: {
+        '/sales': {
+          get: {
+            operationId: 'listSales',
+            parameters: [{ name: 'page_token', in: 'query', schema: { type: 'string' } }],
+            responses: { 200: { content: { 'application/json': { schema: { $ref: '#/components/schemas/SaleList' } } } } },
+          },
+        },
+        '/sale-details': {
+          get: {
+            operationId: 'listSaleDetails',
+            responses: {
+              200: { content: { 'application/json': { schema: { type: 'object', properties: { sales: { type: 'array', items: { $ref: '#/components/schemas/SaleDetail' } } } } } } },
+            },
+          },
+        },
+        '/sales/{id}': {
+          get: {
+            operationId: 'getSale',
+            parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+            responses: { 200: { content: { 'application/json': { schema: { $ref: '#/components/schemas/SaleDetail' } } } } },
+          },
+        },
+        '/sales/{id}:refund': {
+          post: {
+            operationId: 'refundSale',
+            parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+            requestBody: {
+              required: true,
+              content: {
+                'application/json': {
+                  schema: {
+                    allOf: [
+                      { $ref: '#/components/schemas/RefundBase' },
+                      { type: 'object', properties: { reason: { type: 'string', enum: ['broken', 'changed-mind'] } }, required: ['reason'] },
+                    ],
+                  },
+                },
+              },
+            },
+            responses: {},
+          },
+        },
+      },
+      components: {
+        schemas: {
+          Sale: {
+            type: 'object',
+            properties: { id: { type: 'string' }, number: { type: 'string' }, currency: { type: 'string' }, total_minor: { type: 'integer' }, lines: { type: 'array', items: { type: 'object' } } },
+            required: ['id', 'number'],
+          },
+          SaleSummary: {
+            allOf: [{ $ref: '#/components/schemas/Sale' }, { type: 'object', properties: { customer_name: { type: ['string', 'null'] } }, required: ['customer_name'] }],
+          },
+          SaleDetail: {
+            allOf: [{ $ref: '#/components/schemas/SaleSummary' }, { type: 'object', properties: { refunded_minor: { type: 'integer' }, refunds: { type: 'array', items: { type: 'object' } } } }],
+          },
+          SaleList: {
+            type: 'object',
+            properties: { sales: { type: 'array', items: { $ref: '#/components/schemas/SaleSummary' } }, next_page_token: { type: 'string' } },
+          },
+          RefundBase: { type: 'object', properties: { amount_minor: { type: 'integer' }, note: { type: 'string' } }, required: ['amount_minor'] },
+        },
+      },
+    });
+    const byOp = Object.fromEntries(t.commands.map((c) => [c.operationId, c]));
+    // A list's rows: the base's scalar fields, then the extra ones; arrays are no columns.
+    expect(byOp.listSales!.list).toEqual({ key: 'sales', pageToken: 'page_token', columns: ['id', 'number', 'currency', 'total_minor', 'customer_name'] });
+    // An allOf whose base is itself an allOf.
+    expect(byOp.listSaleDetails!.list?.columns).toEqual(['id', 'number', 'currency', 'total_minor', 'customer_name', 'refunded_minor']);
+    // A detail is one record, not a list, even with arrays of records in it.
+    expect(byOp.getSale).toMatchObject({ words: ['sales', 'get'], args: [{ name: 'id', label: 'id', format: 'uuid' }] });
+    expect(byOp.getSale!.list).toBeUndefined();
+    // A body: the base's fields and the extra ones are flags, with the required ones of both parts.
+    expect(byOp.refundSale!.body!.fields.map((f) => [f.name, f.flag, f.type, f.required ?? false])).toEqual([
+      ['amount_minor', 'amount-minor', 'integer', true],
+      ['note', 'note', 'string', false],
+      ['reason', 'reason', 'string', true],
+    ]);
+  });
+
   it('reads nullable types, unions, $refs and allOf', () => {
     const t = generate({
       openapi: '3.1.0',

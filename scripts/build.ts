@@ -1,4 +1,4 @@
-// src/main.ts → dist/rimonto.js: one file, no dependencies, for Node 20 and later; `bin` in package.json.
+// src/main.ts → dist/rimonto.js: one file, no dependencies, for Node 22 and later; `bin` in package.json.
 import { chmodSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { build } from 'esbuild';
@@ -13,7 +13,7 @@ await build({
   bundle: true,
   platform: 'node',
   format: 'esm',
-  target: 'node20',
+  target: 'node22',
   banner: { js: '#!/usr/bin/env node' },
   define: { RIMONTO_VERSION: JSON.stringify(version) },
   minifySyntax: true,
