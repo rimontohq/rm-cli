@@ -1,0 +1,48 @@
+{
+  "name": "rimonto",
+  "version": "0.1.0",
+  "description": "Rimonto's command line: your repair shop's API from a terminal",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "rimonto": "dist/rimonto.js"
+  },
+  "files": [
+    "dist/rimonto.js"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rimontohq/rm-cli.git"
+  },
+  "homepage": "https://developers.rimonto.app",
+  "keywords": [
+    "rimonto",
+    "cli",
+    "repair shop",
+    "point of sale",
+    "api"
+  ],
+  "scripts": {
+    "start": "node src/main.ts",
+    "build": "node scripts/build.ts",
+    "spec": "node scripts/spec.ts",
+    "generate": "node scripts/generate.ts",
+    "generate:check": "node scripts/generate.ts --check",
+    "compile": "bash scripts/compile.sh",
+    "lint": "oxlint -c .oxlintrc.json --max-warnings 0 src test scripts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run lint && npm run typecheck && npm test && npm run generate:check && npm run build",
+    "prepack": "npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "esbuild": "^0.28.2",
+    "oxlint": "^1.90.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}

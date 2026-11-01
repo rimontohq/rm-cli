@@ -1,0 +1,20 @@
+# The CLI's checks: every pull request, and every push to dev and prod.
+#   lint · typecheck · tests · the command table matches spec/openapi.json · the build, which then runs
+# rimonto-ci:local is the CI's runner image (Node 24).
+when:
+  - event: pull_request
+  - event: push
+    branch: [dev, prod]
+  - event: manual
+
+steps:
+  - name: install
+    image: rimonto-ci:local
+    commands: [npm ci --no-audit --no-fund]
+
+  - name: check
+    image: rimonto-ci:local
+    commands:
+      - npm run check
+      - node dist/rimonto.js --version
+      - node dist/rimonto.js --help > /dev/null
