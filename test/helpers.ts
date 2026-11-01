@@ -1,5 +1,6 @@
 // A whole CLI run with no network, terminal or real config: argv in, stdout/stderr/exit code and the requests out.
 
+import { EventEmitter } from 'node:events';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -64,6 +65,8 @@ export interface RunOptions {
   env?: Record<string, string>;
   tty?: boolean;
   stdin?: string;
+  /** What a person types into a terminal on stdin (with its Enter): stdin is then a TTY. */
+  typed?: string;
   handler?: Handler;
   home?: string;
   table?: CommandTable;
@@ -72,14 +75,26 @@ export interface RunOptions {
 
 let uuid = 0;
 
+/** A terminal's stdin: the text is typed once something reads it. */
+function terminal(typed: string): Io['stdin'] {
+  const t = Object.assign(new EventEmitter(), {
+    isTTY: true,
+    setRawMode: () => undefined,
+    setEncoding: () => undefined,
+    pause: () => undefined,
+    resume: () => setImmediate(() => t.emit('data', typed)),
+  });
+  return t as unknown as Io['stdin'];
+}
+
 export async function cli(argv: string[], opts: RunOptions = {}): Promise<RunResult> {
   let stdout = '';
   let stderr = '';
   const sleeps: number[] = [];
   const home = opts.home ?? mkdtempSync(join(tmpdir(), 'rimonto-test-'));
   const { fetch, requests } = fakeFetch(opts.handler ?? (() => json(200, {})));
-  const stdin = Readable.from(opts.stdin === undefined ? [] : [opts.stdin]) as unknown as Io['stdin'];
-  (stdin as { isTTY?: boolean }).isTTY = false;
+  const stdin = opts.typed === undefined ? (Readable.from(opts.stdin === undefined ? [] : [opts.stdin]) as unknown as Io['stdin']) : terminal(opts.typed);
+  if (opts.typed === undefined) (stdin as { isTTY?: boolean }).isTTY = false;
   const io: Io = {
     argv,
     env: { XDG_CONFIG_HOME: join(home, 'config'), ...opts.env },

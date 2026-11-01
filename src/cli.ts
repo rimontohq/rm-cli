@@ -267,7 +267,8 @@ export function openSession(io: Io, table: CommandTable, g: GlobalOptions): Sess
         err('Done.');
         return;
       }
-      session.out(renderHuman(data, { ...opts, width: io.stdout.columns }));
+      // A terminal says how wide it is; when it says nothing (0, or not a terminal with --human), COLUMNS or 120.
+      session.out(renderHuman(data, { ...opts, width: io.stdout.columns || Number(io.env.COLUMNS) || undefined }));
       if (opts.next) err(opts.next);
     },
   };

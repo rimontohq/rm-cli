@@ -157,7 +157,7 @@ describe('lists', () => {
   it('fetches one page by default, with its filters, and says how to get more', async () => {
     const r = await cli(['tickets', 'list', '--status', 'new,ready'], { env: signedIn, table: lists, tty: true, handler: pages });
     expect(r.requests.map((q) => q.url)).toEqual(['https://rimonto.app/core/tickets?status=new&status=ready']);
-    expect(r.stdout).toBe('ID  NUMBER  STATUS      TOTAL\nt0  T-0     new      0.00 USD\nt1  T-1     new     10.00 USD\n');
+    expect(r.stdout).toBe('NUMBER  STATUS      TOTAL  ID\nT-0     new      0.00 USD  t0\nT-1     new     10.00 USD  t1\n');
     expect(r.stderr).toBe('More rows: rimonto tickets list --page-token 2 (or --all)\n');
   });
 
@@ -227,8 +227,34 @@ describe('login, logout, auth status', () => {
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ profiles: { default: { api_key: KEY } } });
 
+    expect(r.stdout).toContain('Saved in ~/config/rimonto/config.json.');
     const who = await cli(['whoami'], { home: r.home, handler: () => json(200, caller) });
     expect(who.requests[0]!.headers.authorization).toBe(`Bearer ${KEY}`);
+  });
+
+  it('asks for the key in a terminal, then says what it acts as without repeating the address', async () => {
+    const r = await cli(['login'], { typed: `${KEY}\r`, tty: true, handler: () => json(200, caller) });
+    expect(r.code).toBe(0);
+    expect(r.stderr).toBe('Signing in to https://rimonto.app/core (profile "default").\nAn owner makes keys at https://developers.rimonto.app → API keys.\nAPI key: \n');
+    expect(r.stdout.split('\n')[0]).toBe('Signed in with rimonto_sk_…1234.');
+    expect(r.stdout + r.stderr).not.toContain(KEY);
+    for (const l of r.stderr.split('\n')) expect(l.length).toBeLessThanOrEqual(70);
+  });
+
+  it('names the stores of a key limited to some, when the API lists them', async () => {
+    const r = await cli(['login', '--with-key', '--human'], {
+      stdin: KEY,
+      handler: (req) => (req.url.endsWith('/stores')
+        ? json(200, { stores: [{ id: STORE, name: 'Fix-It Lab', city: 'Brooklyn' }] })
+        : json(200, caller)),
+    });
+    expect(r.stdout).toContain('Store     Fix-It Lab, Brooklyn');
+    const old = await cli(['login', '--with-key', '--human'], {
+      stdin: KEY,
+      handler: (req) => (req.url.endsWith('/stores') ? problem(404, 'not-found', 'Not found') : json(200, caller)),
+    });
+    expect(old.code).toBe(0);
+    expect(old.stdout).toContain(`Store     ${STORE}`);
   });
 
   it('keeps a profile\'s address and headers with its key', async () => {
@@ -259,7 +285,7 @@ describe('login, logout, auth status', () => {
     expect(status.code).toBe(0);
     expect(status.stdout).toContain('default (in use)');
     expect(status.stdout).toContain('Key       rimonto_sk_…1234');
-    expect(status.stdout).toContain(`Stores    1: ${STORE}`);
+    expect(status.stdout).toContain(`Store     ${STORE}`);
 
     const out = await cli(['logout'], { home: first.home });
     expect(out.code).toBe(0);
