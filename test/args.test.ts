@@ -32,6 +32,15 @@ describe('arguments and body', () => {
     expect(i.body).toEqual({ status: 'ready', text: 'Your phone is ready' });
   });
 
+  it('takes a negative number after a flag as its value', async () => {
+    const i = await input(cmd('stores stock adjust'), [STORE, '--product-id', ID, '--delta', '-2', '--reason', 'recount']);
+    expect(i.body).toEqual({ product_id: ID, delta: -2, reason: 'recount' });
+    const rate = await input(cmd('stores update'), [ID, '--tax-rate', '-.5']);
+    expect(rate.body).toEqual({ tax_rate: -0.5 });
+    // Not after a value flag, a dash still starts a flag.
+    await usageError(input(cmd('stores update'), [ID, '--allow-tax-exempt', '-2']));
+  });
+
   it('types integers, numbers and booleans, with --no- for false', async () => {
     const i = await input(cmd('stores update'), [ID, '--tax-rate', '0.2', '--allow-tax-exempt', '--name=Fix It']);
     expect(i.body).toEqual({ tax_rate: 0.2, allow_tax_exempt: true, name: 'Fix It' });
