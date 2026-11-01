@@ -3867,6 +3867,1153 @@
           "created_at",
           "updated_at"
         ]
+      },
+      "StoreList": {
+        "type": "object",
+        "properties": {
+          "stores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Store"
+            }
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Send it as `page_token` for the next page; left out on the last page"
+          }
+        },
+        "required": [
+          "stores"
+        ]
+      },
+      "StoreDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Store"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "registers": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Register"
+                }
+              }
+            },
+            "required": [
+              "registers"
+            ]
+          }
+        ]
+      },
+      "CustomerList": {
+        "type": "object",
+        "properties": {
+          "customers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Customer"
+            }
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Send it as `page_token` for the next page; left out on the last page"
+          }
+        },
+        "required": [
+          "customers"
+        ]
+      },
+      "CustomerDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Customer"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "devices": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Device"
+                }
+              }
+            },
+            "required": [
+              "devices"
+            ]
+          }
+        ]
+      },
+      "TicketList": {
+        "type": "object",
+        "properties": {
+          "tickets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TicketSummary"
+            }
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Send it as `page_token` for the next page; left out on the last page"
+          }
+        },
+        "required": [
+          "tickets"
+        ]
+      },
+      "TicketSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "store_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "number": {
+            "type": "string"
+          },
+          "customer_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "device_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "new",
+              "diagnosing",
+              "awaiting_approval",
+              "waiting_parts",
+              "in_repair",
+              "ready",
+              "collected",
+              "cancelled"
+            ]
+          },
+          "status_since": {
+            "type": "string"
+          },
+          "technician_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "due_at": {
+            "type": "string"
+          },
+          "due_all_day": {
+            "type": "boolean"
+          },
+          "deposit_minor": {
+            "type": "integer"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "type": "string"
+                },
+                "state": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "label",
+                "state"
+              ]
+            }
+          },
+          "passcode_kind": {
+            "type": "string"
+          },
+          "passcode_saved": {
+            "type": "boolean"
+          },
+          "photos": {
+            "type": "integer"
+          },
+          "bin": {
+            "type": "string"
+          },
+          "tech_note": {
+            "type": "string"
+          },
+          "warranty_days": {
+            "type": "integer"
+          },
+          "quote_sent_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "texted_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "signed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "collected_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sale_ref": {
+            "type": "string"
+          },
+          "deposit_owed_minor": {
+            "type": "integer",
+            "description": "A deposit agreed at the counter but not taken yet; 0 once taken, collected or cancelled"
+          },
+          "quote_declined_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When the customer declined the quote on their repair page; the counter then cancels the repair"
+          },
+          "customer_name": {
+            "type": "string",
+            "description": "First and last name; empty when the customer was erased"
+          },
+          "device_name": {
+            "type": "string",
+            "description": "Brand and model",
+            "example": "Apple iPhone 13 Pro"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3,
+            "description": "The store's currency, of every amount here"
+          },
+          "net_price_minor": {
+            "type": "integer",
+            "description": "The services before tax (once paid: what its sale took, before tax)"
+          },
+          "tax_minor": {
+            "type": "integer"
+          },
+          "tax_note": {
+            "type": "string",
+            "description": "How the tax was worked out, in words",
+            "example": "Sales tax 8.875% added to the prices"
+          },
+          "total_with_tax_minor": {
+            "type": "integer",
+            "description": "The whole repair with tax (once paid: what its sale took for it, after any discount)"
+          },
+          "amount_due_minor": {
+            "type": "integer",
+            "description": "What the customer pays at pickup: the total with tax less the deposit; 0 once collected, paid or cancelled"
+          },
+          "paid": {
+            "type": "boolean",
+            "description": "Collected and paid on a sale"
+          },
+          "discount_minor": {
+            "type": "integer",
+            "description": "Discounts on its sale; 0 until paid"
+          },
+          "paid_at_pickup_minor": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Paid on top of the deposit when it was collected; null until paid"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "store_id",
+          "number",
+          "customer_id",
+          "device_id",
+          "problem",
+          "status",
+          "status_since",
+          "technician_id",
+          "created_at",
+          "due_at",
+          "due_all_day",
+          "deposit_minor",
+          "checks",
+          "passcode_kind",
+          "passcode_saved",
+          "photos",
+          "bin",
+          "tech_note",
+          "warranty_days",
+          "quote_sent_at",
+          "texted_at",
+          "signed_at",
+          "collected_at",
+          "sale_ref",
+          "deposit_owed_minor",
+          "quote_declined_at",
+          "customer_name",
+          "device_name",
+          "currency",
+          "net_price_minor",
+          "tax_minor",
+          "tax_note",
+          "total_with_tax_minor",
+          "amount_due_minor",
+          "paid",
+          "discount_minor",
+          "paid_at_pickup_minor"
+        ]
+      },
+      "TicketDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TicketSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "services": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TicketService"
+                }
+              },
+              "parts": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TicketPart"
+                }
+              }
+            },
+            "required": [
+              "services",
+              "parts"
+            ]
+          }
+        ]
+      },
+      "TicketService": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "price_minor": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "product_id",
+          "name",
+          "detail",
+          "price_minor"
+        ]
+      },
+      "TicketPart": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "product_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "need",
+              "not_checked",
+              "on_order",
+              "reserved",
+              "used"
+            ]
+          },
+          "po_ref": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "sku",
+          "name",
+          "qty",
+          "state",
+          "po_ref",
+          "created_at"
+        ]
+      },
+      "ProductList": {
+        "type": "object",
+        "properties": {
+          "products": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductSummary"
+            }
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Send it as `page_token` for the next page; left out on the last page"
+          }
+        },
+        "required": [
+          "products"
+        ]
+      },
+      "ProductSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "service",
+              "part",
+              "accessory",
+              "device"
+            ]
+          },
+          "serialized": {
+            "type": "boolean"
+          },
+          "warranty_days": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "store_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The store of the fields below: `store_id` of the request; they are all null without it"
+          },
+          "currency": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "price_minor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "avg_cost_minor": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Average cost of a unit in stock"
+          },
+          "on_hand": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reserved": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Held for repairs"
+          },
+          "available": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "On hand less reserved"
+          },
+          "min_qty": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The minimum: below it, the product is on the Low stock list"
+          },
+          "bin": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "defective": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Defective units, off the shelf, waiting to go back to the supplier"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "sku",
+          "name",
+          "kind",
+          "serialized",
+          "warranty_days",
+          "minutes",
+          "active",
+          "created_at",
+          "store_id",
+          "currency",
+          "price_minor",
+          "avg_cost_minor",
+          "on_hand",
+          "reserved",
+          "available",
+          "min_qty",
+          "bin",
+          "defective"
+        ]
+      },
+      "ProductDetail": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "company_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "service",
+              "part",
+              "accessory",
+              "device"
+            ]
+          },
+          "serialized": {
+            "type": "boolean"
+          },
+          "warranty_days": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "stores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoreStock"
+            },
+            "description": "One row per store you can use that stocks it"
+          }
+        },
+        "required": [
+          "id",
+          "company_id",
+          "sku",
+          "name",
+          "kind",
+          "serialized",
+          "warranty_days",
+          "minutes",
+          "active",
+          "created_at",
+          "stores"
+        ]
+      },
+      "StoreStock": {
+        "type": "object",
+        "properties": {
+          "store_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "currency": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 3
+          },
+          "price_minor": {
+            "type": "integer"
+          },
+          "avg_cost_minor": {
+            "type": "integer",
+            "description": "Average cost of a unit in stock"
+          },
+          "on_hand": {
+            "type": "integer"
+          },
+          "reserved": {
+            "type": "integer",
+            "description": "Held for repairs"
+          },
+          "available": {
+            "type": "integer",
+            "description": "On hand less reserved"
+          },
+          "min_qty": {
+            "type": "integer",
+            "description": "The minimum: below it, the product is on the Low stock list"
+          },
+          "bin": {
+            "type": "string"
+          },
+          "defective": {
+            "type": "integer",
+            "description": "Defective units, off the shelf, waiting to go back to the supplier"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "store_id",
+          "currency",
+          "price_minor",
+          "avg_cost_minor",
+          "on_hand",
+          "reserved",
+          "available",
+          "min_qty",
+          "bin",
+          "defective",
+          "updated_at"
+        ]
+      },
+      "SaleList": {
+        "type": "object",
+        "properties": {
+          "sales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SaleSummary"
+            }
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Send it as `page_token` for the next page; left out on the last page"
+          }
+        },
+        "required": [
+          "sales"
+        ]
+      },
+      "SaleSummary": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Sale"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "customer_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "First and last name; null on a sale without a customer, empty once they were erased"
+              }
+            },
+            "required": [
+              "customer_name"
+            ]
+          }
+        ]
+      },
+      "SaleDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SaleSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "lines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SaleLine"
+                }
+              },
+              "payments": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SalePayment"
+                }
+              },
+              "refunds": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/SaleRefund"
+                }
+              }
+            },
+            "required": [
+              "lines",
+              "payments",
+              "refunds"
+            ]
+          }
+        ]
+      },
+      "SaleLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "ticket_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The repair it paid for"
+          },
+          "name": {
+            "type": "string"
+          },
+          "meta": {
+            "type": "string",
+            "description": "A gift card line: the card's code, by its last four characters"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "unit_price_minor": {
+            "type": "integer"
+          },
+          "list_price_minor": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The price before someone changed it at the counter"
+          },
+          "discount_minor": {
+            "type": "integer"
+          },
+          "promo": {
+            "type": "string"
+          },
+          "tax_minor": {
+            "type": "integer"
+          },
+          "refunded_qty": {
+            "type": "integer"
+          },
+          "gift_card_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "note": {
+            "type": "string"
+          },
+          "serials": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "product_id",
+          "ticket_id",
+          "name",
+          "meta",
+          "qty",
+          "unit_price_minor",
+          "list_price_minor",
+          "discount_minor",
+          "promo",
+          "tax_minor",
+          "refunded_qty",
+          "gift_card_id",
+          "note",
+          "serials"
+        ]
+      },
+      "SalePayment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "cash",
+              "card",
+              "gift",
+              "credit",
+              "other"
+            ]
+          },
+          "amount_minor": {
+            "type": "integer"
+          },
+          "label": {
+            "type": "string",
+            "example": "Visa •• 4242"
+          },
+          "detail": {
+            "type": "string",
+            "description": "A gift card: its code, by its last four characters"
+          },
+          "tendered_minor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "change_minor": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "at": {
+            "type": "string"
+          },
+          "card_provider": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "stripe",
+              "braintree",
+              null
+            ]
+          },
+          "gift_card_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "amount_minor",
+          "label",
+          "detail",
+          "tendered_minor",
+          "change_minor",
+          "at",
+          "card_provider",
+          "gift_card_id"
+        ]
+      },
+      "SaleRefund": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Refund"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "lines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/RefundLine"
+                }
+              }
+            },
+            "required": [
+              "lines"
+            ]
+          }
+        ]
+      },
+      "RefundLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sale_line_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "amount_minor": {
+            "type": "integer"
+          },
+          "tax_minor": {
+            "type": "integer"
+          },
+          "restocked": {
+            "type": "boolean"
+          },
+          "set_aside": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "sale_line_id",
+          "qty",
+          "amount_minor",
+          "tax_minor",
+          "restocked",
+          "set_aside"
+        ]
+      },
+      "PurchaseOrderList": {
+        "type": "object",
+        "properties": {
+          "purchase_orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderSummary"
+            }
+          },
+          "next_page_token": {
+            "type": "string",
+            "description": "Send it as `page_token` for the next page; left out on the last page"
+          }
+        },
+        "required": [
+          "purchase_orders"
+        ]
+      },
+      "PurchaseOrderSummary": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PurchaseOrder"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "supplier_name": {
+                "type": "string"
+              },
+              "subtotal_minor": {
+                "type": "integer",
+                "description": "The lines: quantity × unit cost"
+              },
+              "total_minor": {
+                "type": "integer",
+                "description": "Subtotal, shipping and tax"
+              }
+            },
+            "required": [
+              "supplier_name",
+              "subtotal_minor",
+              "total_minor"
+            ]
+          }
+        ]
+      },
+      "PurchaseOrderDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/PurchaseOrderSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "lines": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/PurchaseOrderLine"
+                }
+              }
+            },
+            "required": [
+              "lines"
+            ]
+          }
+        ]
+      },
+      "PurchaseOrderLine": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "position": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sku": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "qty": {
+            "type": "integer"
+          },
+          "unit_cost_minor": {
+            "type": "integer"
+          },
+          "for_ticket_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The repair it was ordered for"
+          },
+          "received": {
+            "type": "integer"
+          },
+          "backordered": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "product_id",
+          "sku",
+          "name",
+          "qty",
+          "unit_cost_minor",
+          "for_ticket_id",
+          "received",
+          "backordered"
+        ]
       }
     },
     "parameters": {}
@@ -4539,6 +5686,91 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "listStores",
+        "summary": "List stores",
+        "description": "Any member: the stores you can use (an API key: its stores), by name, then city.",
+        "tags": [
+          "Stores"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 50,
+              "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+              "example": 50
+            },
+            "required": false,
+            "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+            "name": "max_page_size",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page."
+            },
+            "required": false,
+            "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page.",
+            "name": "page_token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of stores",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/stores/{id}": {
@@ -4652,6 +5884,85 @@
           },
           "404": {
             "description": "No such store, or not yours",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getStore",
+        "summary": "Get a store",
+        "description": "Any member, for a store they can use: the store and its registers.",
+        "tags": [
+          "Stores"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The store",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`store-not-found`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -5505,6 +6816,124 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "listProducts",
+        "summary": "List products",
+        "description": "Any member: the company's products and services, by name. With `store_id`, the ones that store stocks, each with its price and stock there; `low_stock=true` then keeps those below their minimum (the panel's Low stock list: not services, a minimum set, on hand under it).",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Part of the name or SKU"
+            },
+            "required": false,
+            "description": "Part of the name or SKU",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "A store you can use: its price and stock with each product, and only the products it stocks"
+            },
+            "required": false,
+            "description": "A store you can use: its price and stock with each product, and only the products it stocks",
+            "name": "store_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "boolean",
+              "description": "Only products below their minimum in `store_id` (which it needs)"
+            },
+            "required": false,
+            "description": "Only products below their minimum in `store_id` (which it needs)",
+            "name": "low_stock",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 50,
+              "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+              "example": 50
+            },
+            "required": false,
+            "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+            "name": "max_page_size",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page."
+            },
+            "required": false,
+            "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page.",
+            "name": "page_token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of products",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid-request`: `low_stock` without `store_id`; `invalid-page-token`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/products/{id}": {
@@ -5625,6 +7054,85 @@
           },
           "409": {
             "description": "`sku-taken`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getProduct",
+        "summary": "Get a product",
+        "description": "Any member: the product or service, and its price and stock in each store you can use that stocks it.",
+        "tags": [
+          "Stock"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The product",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`product-not-found`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -6854,6 +8362,114 @@
             }
           }
         }
+      },
+      "get": {
+        "operationId": "listCustomers",
+        "summary": "List customers",
+        "description": "Any member: the customers of the stores you can use, by first name, then last name. Erased customers are not listed.",
+        "tags": [
+          "Customers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Part of the name or email, or 4 digits or more of the phone number"
+            },
+            "required": false,
+            "description": "Part of the name or email, or 4 digits or more of the phone number",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this store. Leave out for every store you can use"
+            },
+            "required": false,
+            "description": "Only this store. Leave out for every store you can use",
+            "name": "store_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 50,
+              "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+              "example": 50
+            },
+            "required": false,
+            "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+            "name": "max_page_size",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page."
+            },
+            "required": false,
+            "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page.",
+            "name": "page_token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of customers",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/customers:import": {
@@ -7177,6 +8793,85 @@
           },
           "409": {
             "description": "`customer-exists`, `erased`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "getCustomer",
+        "summary": "Get a customer",
+        "description": "Any member, for a customer of a store they can use: the customer and their devices, newest first. An erased customer is a nameless record with `erased_at` set.",
+        "tags": [
+          "Customers"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The customer",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`customer-not-found`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -8200,6 +9895,150 @@
           },
           "409": {
             "description": "`no-open-shift` (a cash deposit needs an open shift), `card-payment-used`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listTickets",
+        "summary": "List repairs",
+        "description": "Any member: the repairs of the stores you can use, newest first, each with its money (the same as the panel and the assistants' tools work it out). Every status unless you ask for some.",
+        "tags": [
+          "Repairs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this store. Leave out for every store you can use"
+            },
+            "required": false,
+            "description": "Only this store. Leave out for every store you can use",
+            "name": "store_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "new",
+                  "diagnosing",
+                  "awaiting_approval",
+                  "waiting_parts",
+                  "in_repair",
+                  "ready",
+                  "collected",
+                  "cancelled"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 20,
+              "description": "Only these statuses: repeat it (`status=new&status=ready`) or separate them with commas"
+            },
+            "required": false,
+            "description": "Only these statuses: repeat it (`status=new&status=ready`) or separate them with commas",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this customer's repairs"
+            },
+            "required": false,
+            "description": "Only this customer's repairs",
+            "name": "customer_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "description": "Part of the ticket number (T-1042), the customer's name or the device"
+            },
+            "required": false,
+            "description": "Part of the ticket number (T-1042), the customer's name or the device",
+            "name": "q",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 50,
+              "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+              "example": 50
+            },
+            "required": false,
+            "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+            "name": "max_page_size",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page."
+            },
+            "required": false,
+            "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page.",
+            "name": "page_token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of repairs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -11446,6 +13285,137 @@
           },
           "422": {
             "description": "`payments-do-not-match` (with `due_minor`, `paid_minor`), `not-enough-credit`, `tendered-short`, `card-payment-not-approved`, `card-payment-amount`, `gift-card-balance` (with `gift_code`, `balance_minor`), `gift-card-currency`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "operationId": "listSales",
+        "summary": "List sales",
+        "description": "Any member: the sales of the stores you can use, newest first. Totals include tax; refunds are on each sale (`getSale`).",
+        "tags": [
+          "Register"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this store. Leave out for every store you can use"
+            },
+            "required": false,
+            "description": "Only this store. Leave out for every store you can use",
+            "name": "store_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this customer's sales"
+            },
+            "required": false,
+            "description": "Only this customer's sales",
+            "name": "customer_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Sales at or after this moment (ISO 8601)",
+              "example": "2026-10-01T00:00:00Z"
+            },
+            "required": false,
+            "description": "Sales at or after this moment (ISO 8601)",
+            "name": "since",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Sales before this moment (ISO 8601)",
+              "example": "2026-11-01T00:00:00Z"
+            },
+            "required": false,
+            "description": "Sales before this moment (ISO 8601)",
+            "name": "until",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 50,
+              "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+              "example": 50
+            },
+            "required": false,
+            "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+            "name": "max_page_size",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page."
+            },
+            "required": false,
+            "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page.",
+            "name": "page_token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of sales",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaleList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -19412,6 +21382,383 @@
           },
           "422": {
             "description": "`invalid-phone`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tickets/{id}": {
+      "get": {
+        "operationId": "getTicket",
+        "summary": "Get a repair",
+        "description": "Any member, for a repair in a store they can use: the ticket, its services and parts, and its money. Never the device passcode (`:reveal-passcode` is a command of its own) or the customer page's token.",
+        "tags": [
+          "Repairs"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The repair",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`ticket-not-found`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sales/{id}": {
+      "get": {
+        "operationId": "getSale",
+        "summary": "Get a sale",
+        "description": "Any member, for a sale in a store they can use: the sale, its lines, its payments and its refunds with their lines. A gift card's code shows by its last four characters.",
+        "tags": [
+          "Register"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sale",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaleDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`sale-not-found`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/purchase-orders": {
+      "get": {
+        "operationId": "listPurchaseOrders",
+        "summary": "List supplier orders",
+        "description": "Owners, managers and technicians: whoever may order parts (the Purchasing screen's rule); 403 `right-required` otherwise. The orders of the stores you can use, newest first, drafts included.",
+        "tags": [
+          "Purchasing"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this store. Leave out for every store you can use"
+            },
+            "required": false,
+            "description": "Only this store. Leave out for every store you can use",
+            "name": "store_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only this supplier's orders"
+            },
+            "required": false,
+            "description": "Only this supplier's orders",
+            "name": "supplier_id",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "draft",
+                  "placed",
+                  "confirmed",
+                  "shipped",
+                  "arrived",
+                  "backordered",
+                  "received",
+                  "cancelled"
+                ]
+              },
+              "minItems": 1,
+              "maxItems": 20,
+              "description": "Only these statuses: repeat it or separate them with commas"
+            },
+            "required": false,
+            "description": "Only these statuses: repeat it or separate them with commas",
+            "name": "status",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 50,
+              "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+              "example": 50
+            },
+            "required": false,
+            "description": "At most this many results on the page: 50 unless you say, 200 at most (more gets 200). A page may hold fewer even when more follow: go on while there is a `next_page_token`.",
+            "name": "max_page_size",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000,
+              "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page."
+            },
+            "required": false,
+            "description": "The `next_page_token` of the previous page, sent with the same other parameters. Leave out for the first page.",
+            "name": "page_token",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of orders",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`right-required`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/purchase-orders/{id}": {
+      "get": {
+        "operationId": "getPurchaseOrder",
+        "summary": "Get a supplier order",
+        "description": "Owners, managers and technicians: whoever may order parts (the Purchasing screen's rule); 403 `right-required` otherwise. The order and its lines.",
+        "tags": [
+          "Purchasing"
+        ],
+        "security": [
+          {
+            "bearer": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderDetail"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "See `code`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`right-required`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`po-not-found`",
             "content": {
               "application/problem+json": {
                 "schema": {
