@@ -187,8 +187,17 @@ you give it in the profile.
 
 ## Contributing
 
-You need Node.js 22 or later (24 is what we use). A release is a tag `v<version>` and `npm publish`; then the
-Homebrew formula in [rimontohq/homebrew-tap](https://github.com/rimontohq/homebrew-tap) moves to the new version.
+You need Node.js 22 or later (24 is what we use).
+
+### Releasing
+
+1. Raise `version` in `package.json` (`npm version <x.y.z> --no-git-tag-version`) in a pull request into `dev`.
+2. Open a pull request from `dev` into `prod` and merge it with a merge commit.
+3. On `prod`, GitHub Actions' `release` workflow (`.github/workflows/release.yml`) runs the checks, publishes that
+   version to npm with provenance, tags `v<version>` and attaches the package to its GitHub release. npm trusts this
+   workflow by OIDC (Trusted Publishing on npmjs.com), so no token or password is kept anywhere.
+4. Within the hour, [rimontohq/homebrew-tap](https://github.com/rimontohq/homebrew-tap)'s `bump` workflow moves the
+   formula to it, after auditing, installing and testing it.
 
 ```sh
 npm install

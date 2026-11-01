@@ -1,0 +1,70 @@
+# Publishes rimonto when a new version reaches prod. A release is a pull request from dev into prod (README,
+# "Releasing"), after the version in package.json was raised. npm trusts this workflow of rimontohq/rm-cli by OIDC
+# (Trusted Publishing, set on npmjs.com), so no token or password is kept anywhere, and npm adds provenance. A push to
+# prod whose version is on npm already publishes nothing. The Homebrew formula follows by itself (rimontohq/homebrew-tap,
+# its workflow "bump").
+name: release
+
+on:
+  push:
+    branches: [prod]
+  workflow_dispatch:
+
+permissions:
+  contents: write # the tag and the GitHub release
+  id-token: write # npm's trusted publishing
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1 or later.
+      - run: npm install -g npm@latest
+
+      - name: Is this version on npm already?
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if npm view "rimonto@$VERSION" version > /dev/null 2>&1; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+            echo "rimonto $VERSION is on npm already: nothing to publish."
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.new == 'true'
+        run: npm ci --no-audit --no-fund
+
+      - if: steps.version.outputs.new == 'true'
+        run: npm run check
+
+      # One tarball goes to npm and to the GitHub release, so the Homebrew formula's checksum is npm's package.
+      - name: Publish to npm
+        if: steps.version.outputs.new == 'true'
+        run: |
+          npm pack
+          npm publish "rimonto-${{ steps.version.outputs.version }}.tgz" --access public
+
+      - name: Tag and GitHub release
+        if: steps.version.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          if gh release view "v$VERSION" > /dev/null 2>&1; then
+            gh release upload "v$VERSION" "rimonto-$VERSION.tgz" --clobber
+          else
+            gh release create "v$VERSION" "rimonto-$VERSION.tgz" --target "$GITHUB_SHA" --title "rimonto $VERSION" --generate-notes
+          fi
