@@ -1,13 +1,13 @@
-# Publishes rimonto when a new version reaches prod. A release is a pull request from dev into prod (README,
-# "Releasing"), after the version in package.json was raised. npm trusts this workflow of rimontohq/rm-cli by OIDC
-# (Trusted Publishing, set on npmjs.com), so no token or password is kept anywhere, and npm adds provenance. A push to
-# prod whose version is on npm already publishes nothing. The Homebrew formula follows by itself (rimontohq/homebrew-tap,
-# its workflow "bump").
+# Publishes rimonto when a merge into dev raises its version: the merge is the release (README, "Releasing"; a pull
+# request that changes what users get must raise it, Woodpecker's check "version" says so). npm trusts this workflow of
+# rimontohq/rm-cli by OIDC (Trusted Publishing, set on npmjs.com), so no token or password is kept anywhere, and npm
+# adds provenance. A merge whose version is on npm already publishes nothing. The Homebrew formula follows by itself
+# (rimontohq/homebrew-tap, its Woodpecker pipeline "bump").
 name: release
 
 on:
   push:
-    branches: [prod]
+    branches: [dev]
   workflow_dispatch:
 
 permissions:

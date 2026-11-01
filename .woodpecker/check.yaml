@@ -1,4 +1,4 @@
-# The CLI's checks: every pull request, and every push to dev and prod.
+# The CLI's checks: every pull request, and every push to dev.
 #   lint · typecheck · tests (unit; contract: every command against spec/openapi.json; smoke: the built bundle) ·
 #   the command table matches spec/openapi.json · the build, which then runs.
 # Not here: `npm run e2e`, which needs a real core; the panel's api e2e runs it.
@@ -6,7 +6,7 @@
 when:
   - event: pull_request
   - event: push
-    branch: [dev, prod]
+    branch: dev
   - event: manual
 
 steps:
@@ -20,3 +20,13 @@ steps:
       - npm run check
       - node dist/rimonto.js --version
       - node dist/rimonto.js --help > /dev/null
+
+  # A pull request that changes what users get raises the version: its merge into dev publishes it (README, "Releasing").
+  - name: version
+    image: rimonto-ci:local
+    when:
+      - event: pull_request
+    commands:
+      - git fetch -q --unshallow 2> /dev/null || true
+      - git fetch -q --no-tags origin "+refs/heads/$${CI_COMMIT_TARGET_BRANCH}:refs/remotes/origin/$${CI_COMMIT_TARGET_BRANCH}"
+      - node scripts/version-check.mjs "origin/$${CI_COMMIT_TARGET_BRANCH}"
