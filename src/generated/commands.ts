@@ -95,6 +95,40 @@ export const TABLE: CommandTable = {
     {
       "words": [
         "stores",
+        "list"
+      ],
+      "operationId": "listStores",
+      "method": "GET",
+      "path": "/stores",
+      "area": "Stores",
+      "summary": "List stores",
+      "description": "Any member: the stores you can use (an API key: its stores), by name, then city.",
+      "args": [],
+      "query": [],
+      "apiKey": true,
+      "auth": true,
+      "list": {
+        "key": "stores",
+        "pageToken": "page_token",
+        "pageSize": "max_page_size",
+        "columns": [
+          "id",
+          "company_id",
+          "name",
+          "city",
+          "address",
+          "region_code",
+          "currency",
+          "timezone",
+          "created_at",
+          "tax_rate",
+          "allow_tax_exempt"
+        ]
+      }
+    },
+    {
+      "words": [
+        "stores",
         "create"
       ],
       "operationId": "createStore",
@@ -153,6 +187,28 @@ export const TABLE: CommandTable = {
         "open": false
       },
       "idempotency": "required",
+      "apiKey": true,
+      "auth": true
+    },
+    {
+      "words": [
+        "stores",
+        "get"
+      ],
+      "operationId": "getStore",
+      "method": "GET",
+      "path": "/stores/{id}",
+      "area": "Stores",
+      "summary": "Get a store",
+      "description": "Any member, for a store they can use: the store and its registers.",
+      "args": [
+        {
+          "name": "id",
+          "label": "id",
+          "format": "uuid"
+        }
+      ],
+      "query": [],
       "apiKey": true,
       "auth": true
     },
@@ -455,6 +511,69 @@ export const TABLE: CommandTable = {
     {
       "words": [
         "products",
+        "list"
+      ],
+      "operationId": "listProducts",
+      "method": "GET",
+      "path": "/products",
+      "area": "Stock",
+      "summary": "List products",
+      "description": "Any member: the company's products and services, by name. With `store_id`, the ones that store stocks, each with its price and stock there; `low_stock=true` then keeps those below their minimum (the panel's Low stock list: not services, a minimum set, on hand under it).",
+      "args": [],
+      "query": [
+        {
+          "name": "q",
+          "type": "string",
+          "description": "Part of the name or SKU",
+          "flag": "q"
+        },
+        {
+          "name": "store_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "A store you can use: its price and stock with each product, and only the products it stocks",
+          "flag": "store-id"
+        },
+        {
+          "name": "low_stock",
+          "type": "boolean",
+          "description": "Only products below their minimum in `store_id` (which it needs)",
+          "flag": "low-stock"
+        }
+      ],
+      "apiKey": true,
+      "auth": true,
+      "list": {
+        "key": "products",
+        "pageToken": "page_token",
+        "pageSize": "max_page_size",
+        "columns": [
+          "id",
+          "company_id",
+          "sku",
+          "name",
+          "kind",
+          "serialized",
+          "warranty_days",
+          "minutes",
+          "active",
+          "created_at",
+          "store_id",
+          "currency",
+          "price_minor",
+          "avg_cost_minor",
+          "on_hand",
+          "reserved",
+          "available",
+          "min_qty",
+          "bin",
+          "defective"
+        ]
+      }
+    },
+    {
+      "words": [
+        "products",
         "create"
       ],
       "operationId": "createProduct",
@@ -551,6 +670,28 @@ export const TABLE: CommandTable = {
         "open": false
       },
       "idempotency": "required",
+      "apiKey": true,
+      "auth": true
+    },
+    {
+      "words": [
+        "products",
+        "get"
+      ],
+      "operationId": "getProduct",
+      "method": "GET",
+      "path": "/products/{id}",
+      "area": "Stock",
+      "summary": "Get a product",
+      "description": "Any member: the product or service, and its price and stock in each store you can use that stocks it.",
+      "args": [
+        {
+          "name": "id",
+          "label": "id",
+          "format": "uuid"
+        }
+      ],
+      "query": [],
       "apiKey": true,
       "auth": true
     },
@@ -951,6 +1092,62 @@ export const TABLE: CommandTable = {
     {
       "words": [
         "customers",
+        "list"
+      ],
+      "operationId": "listCustomers",
+      "method": "GET",
+      "path": "/customers",
+      "area": "Customers",
+      "summary": "List customers",
+      "description": "Any member: the customers of the stores you can use, by first name, then last name. Erased customers are not listed.",
+      "args": [],
+      "query": [
+        {
+          "name": "q",
+          "type": "string",
+          "description": "Part of the name or email, or 4 digits or more of the phone number",
+          "flag": "q"
+        },
+        {
+          "name": "store_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this store. Leave out for every store you can use",
+          "flag": "store-id"
+        }
+      ],
+      "apiKey": true,
+      "auth": true,
+      "list": {
+        "key": "customers",
+        "pageToken": "page_token",
+        "pageSize": "max_page_size",
+        "columns": [
+          "id",
+          "company_id",
+          "store_id",
+          "first_name",
+          "last_name",
+          "phone",
+          "email",
+          "address",
+          "prefers",
+          "note_text",
+          "note_by",
+          "note_at",
+          "consent_updates",
+          "consent_marketing",
+          "marketing_opt_out_at",
+          "tax_exempt",
+          "created_at",
+          "erased_at",
+          "store_credit_minor"
+        ]
+      }
+    },
+    {
+      "words": [
+        "customers",
         "create"
       ],
       "operationId": "createCustomer",
@@ -1064,6 +1261,28 @@ export const TABLE: CommandTable = {
         "open": false
       },
       "idempotency": "required",
+      "apiKey": true,
+      "auth": true
+    },
+    {
+      "words": [
+        "customers",
+        "get"
+      ],
+      "operationId": "getCustomer",
+      "method": "GET",
+      "path": "/customers/{id}",
+      "area": "Customers",
+      "summary": "Get a customer",
+      "description": "Any member, for a customer of a store they can use: the customer and their devices, newest first. An erased customer is a nameless record with `erased_at` set.",
+      "args": [
+        {
+          "name": "id",
+          "label": "id",
+          "format": "uuid"
+        }
+      ],
+      "query": [],
       "apiKey": true,
       "auth": true
     },
@@ -1416,6 +1635,105 @@ export const TABLE: CommandTable = {
       },
       "apiKey": true,
       "auth": true
+    },
+    {
+      "words": [
+        "tickets",
+        "list"
+      ],
+      "operationId": "listTickets",
+      "method": "GET",
+      "path": "/tickets",
+      "area": "Repairs",
+      "summary": "List repairs",
+      "description": "Any member: the repairs of the stores you can use, newest first, each with its money (the same as the panel and the assistants' tools work it out). Every status unless you ask for some.",
+      "args": [],
+      "query": [
+        {
+          "name": "store_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this store. Leave out for every store you can use",
+          "flag": "store-id"
+        },
+        {
+          "name": "status",
+          "type": "array",
+          "items": "string",
+          "enum": [
+            "new",
+            "diagnosing",
+            "awaiting_approval",
+            "waiting_parts",
+            "in_repair",
+            "ready",
+            "collected",
+            "cancelled"
+          ],
+          "description": "Only these statuses: repeat it (`status=new&status=ready`) or separate them with commas",
+          "flag": "status"
+        },
+        {
+          "name": "customer_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this customer's repairs",
+          "flag": "customer-id"
+        },
+        {
+          "name": "q",
+          "type": "string",
+          "description": "Part of the ticket number (T-1042), the customer's name or the device",
+          "flag": "q"
+        }
+      ],
+      "apiKey": true,
+      "auth": true,
+      "list": {
+        "key": "tickets",
+        "pageToken": "page_token",
+        "pageSize": "max_page_size",
+        "columns": [
+          "id",
+          "company_id",
+          "store_id",
+          "number",
+          "customer_id",
+          "device_id",
+          "problem",
+          "status",
+          "status_since",
+          "technician_id",
+          "created_at",
+          "due_at",
+          "due_all_day",
+          "deposit_minor",
+          "passcode_kind",
+          "passcode_saved",
+          "photos",
+          "bin",
+          "tech_note",
+          "warranty_days",
+          "quote_sent_at",
+          "texted_at",
+          "signed_at",
+          "collected_at",
+          "sale_ref",
+          "deposit_owed_minor",
+          "quote_declined_at",
+          "customer_name",
+          "device_name",
+          "currency",
+          "net_price_minor",
+          "tax_minor",
+          "tax_note",
+          "total_with_tax_minor",
+          "amount_due_minor",
+          "paid",
+          "discount_minor",
+          "paid_at_pickup_minor"
+        ]
+      }
     },
     {
       "words": [
@@ -2614,6 +2932,82 @@ export const TABLE: CommandTable = {
       "idempotency": "required",
       "apiKey": true,
       "auth": true
+    },
+    {
+      "words": [
+        "sales",
+        "list"
+      ],
+      "operationId": "listSales",
+      "method": "GET",
+      "path": "/sales",
+      "area": "Register",
+      "summary": "List sales",
+      "description": "Any member: the sales of the stores you can use, newest first. Totals include tax; refunds are on each sale (`getSale`).",
+      "args": [],
+      "query": [
+        {
+          "name": "store_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this store. Leave out for every store you can use",
+          "flag": "store-id"
+        },
+        {
+          "name": "customer_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this customer's sales",
+          "flag": "customer-id"
+        },
+        {
+          "name": "since",
+          "type": "string",
+          "format": "date-time",
+          "example": "2026-10-01T00:00:00Z",
+          "description": "Sales at or after this moment (ISO 8601)",
+          "flag": "since"
+        },
+        {
+          "name": "until",
+          "type": "string",
+          "format": "date-time",
+          "example": "2026-11-01T00:00:00Z",
+          "description": "Sales before this moment (ISO 8601)",
+          "flag": "until"
+        }
+      ],
+      "apiKey": true,
+      "auth": true,
+      "list": {
+        "key": "sales",
+        "pageToken": "page_token",
+        "pageSize": "max_page_size",
+        "columns": [
+          "id",
+          "company_id",
+          "store_id",
+          "register_id",
+          "shift_id",
+          "number",
+          "customer_id",
+          "at",
+          "by",
+          "currency",
+          "tax_mode",
+          "tax_rate",
+          "tax_exempt",
+          "subtotal_minor",
+          "discount_minor",
+          "tax_minor",
+          "total_minor",
+          "deposits_minor",
+          "receipt",
+          "note",
+          "refunded",
+          "customer_name"
+        ]
+      }
     },
     {
       "words": [
@@ -5063,6 +5457,156 @@ export const TABLE: CommandTable = {
         "open": false
       },
       "idempotency": "required",
+      "apiKey": true,
+      "auth": true
+    },
+    {
+      "words": [
+        "tickets",
+        "get"
+      ],
+      "operationId": "getTicket",
+      "method": "GET",
+      "path": "/tickets/{id}",
+      "area": "Repairs",
+      "summary": "Get a repair",
+      "description": "Any member, for a repair in a store they can use: the ticket, its services and parts, and its money. Never the device passcode (`:reveal-passcode` is a command of its own) or the customer page's token.",
+      "args": [
+        {
+          "name": "id",
+          "label": "id",
+          "format": "uuid"
+        }
+      ],
+      "query": [],
+      "apiKey": true,
+      "auth": true
+    },
+    {
+      "words": [
+        "sales",
+        "get"
+      ],
+      "operationId": "getSale",
+      "method": "GET",
+      "path": "/sales/{id}",
+      "area": "Register",
+      "summary": "Get a sale",
+      "description": "Any member, for a sale in a store they can use: the sale, its lines, its payments and its refunds with their lines. A gift card's code shows by its last four characters.",
+      "args": [
+        {
+          "name": "id",
+          "label": "id",
+          "format": "uuid"
+        }
+      ],
+      "query": [],
+      "apiKey": true,
+      "auth": true
+    },
+    {
+      "words": [
+        "purchase-orders",
+        "list"
+      ],
+      "operationId": "listPurchaseOrders",
+      "method": "GET",
+      "path": "/purchase-orders",
+      "area": "Purchasing",
+      "summary": "List supplier orders",
+      "description": "Owners, managers and technicians: whoever may order parts (the Purchasing screen's rule); 403 `right-required` otherwise. The orders of the stores you can use, newest first, drafts included.",
+      "args": [],
+      "query": [
+        {
+          "name": "store_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this store. Leave out for every store you can use",
+          "flag": "store-id"
+        },
+        {
+          "name": "supplier_id",
+          "type": "string",
+          "format": "uuid",
+          "description": "Only this supplier's orders",
+          "flag": "supplier-id"
+        },
+        {
+          "name": "status",
+          "type": "array",
+          "items": "string",
+          "enum": [
+            "draft",
+            "placed",
+            "confirmed",
+            "shipped",
+            "arrived",
+            "backordered",
+            "received",
+            "cancelled"
+          ],
+          "description": "Only these statuses: repeat it or separate them with commas",
+          "flag": "status"
+        }
+      ],
+      "apiKey": true,
+      "auth": true,
+      "list": {
+        "key": "purchase_orders",
+        "pageToken": "page_token",
+        "pageSize": "max_page_size",
+        "columns": [
+          "id",
+          "company_id",
+          "store_id",
+          "supplier_id",
+          "number",
+          "status",
+          "currency",
+          "created_at",
+          "created_by",
+          "placed_at",
+          "placed_by",
+          "eta",
+          "carrier",
+          "tracking",
+          "delivered_at",
+          "received_at",
+          "received_by",
+          "auto_received",
+          "shipping_minor",
+          "tax_minor",
+          "invoice_ref",
+          "invoice_due_at",
+          "invoice_paid",
+          "claim_kind",
+          "claim_at",
+          "claim_minor",
+          "supplier_name",
+          "subtotal_minor",
+          "total_minor"
+        ]
+      }
+    },
+    {
+      "words": [
+        "purchase-orders",
+        "get"
+      ],
+      "operationId": "getPurchaseOrder",
+      "method": "GET",
+      "path": "/purchase-orders/{id}",
+      "area": "Purchasing",
+      "summary": "Get a supplier order",
+      "description": "Owners, managers and technicians: whoever may order parts (the Purchasing screen's rule); 403 `right-required` otherwise. The order and its lines.",
+      "args": [
+        {
+          "name": "id",
+          "label": "id",
+          "format": "uuid"
+        }
+      ],
+      "query": [],
       "apiKey": true,
       "auth": true
     }
