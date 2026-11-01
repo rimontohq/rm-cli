@@ -35,7 +35,9 @@ export function describeFailure(res: HttpResponse, ctx: ProblemContext): string[
     }
   } else if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get('location');
-    lines.push(`rimonto: the API address redirects (${res.status}${location ? ` to ${location}` : ''})`);
+    // A sign-in page's address carries long tokens in its query: the page itself is enough to say where it goes.
+    const where = location?.replace(/[?#].*$/, '');
+    lines.push(`rimonto: the API address redirects (${res.status}${where ? ` to ${where}` : ''})`);
     lines.push(`  Requests go to ${ctx.apiUrl}. If the new address is right, use it: --api-url or RIMONTO_API_URL.`);
     if (location && !sameOrigin(location, ctx.apiUrl)) {
       lines.push('  A redirect to another site can be a sign-in page in front of the API: pass its headers with -H or RIMONTO_HEADERS.');

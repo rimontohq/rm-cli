@@ -22,7 +22,13 @@ Or run it without installing:
 npx rimonto --help
 ```
 
-Homebrew and standalone downloads (no Node.js needed) will come later.
+With Homebrew (it brings Node.js along):
+
+```sh
+brew install rimontohq/tap/rimonto
+```
+
+Standalone downloads, with no Node.js at all, come later.
 
 ## Sign in
 
@@ -180,8 +186,8 @@ you give it in the profile.
 
 ## Contributing
 
-You need Node.js 22 or later (24 is what we use). The package is marked private until its first release: nothing
-is published to npm before then.
+You need Node.js 22 or later (24 is what we use). A release is a tag `v<version>` and `npm publish`; then the
+Homebrew formula in [rimontohq/homebrew-tap](https://github.com/rimontohq/homebrew-tap) moves to the new version.
 
 ```sh
 npm install

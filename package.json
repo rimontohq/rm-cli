@@ -1,7 +1,6 @@
 {
   "name": "rimonto",
   "version": "0.1.0",
-  "private": true,
   "description": "Rimonto's command line: your repair shop's API from a terminal",
   "license": "MIT",
   "type": "module",
@@ -18,7 +17,7 @@
     "type": "git",
     "url": "git+https://github.com/rimontohq/rm-cli.git"
   },
-  "homepage": "https://developers.rimonto.app",
+  "homepage": "https://developers.rimonto.app/cli/",
   "keywords": [
     "rimonto",
     "cli",
@@ -45,5 +44,8 @@
     "oxlint": "^1.90.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"
+  },
+  "bugs": {
+    "url": "https://github.com/rimontohq/rm-cli/issues"
   }
 }
