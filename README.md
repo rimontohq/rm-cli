@@ -30,6 +30,11 @@ brew install rimontohq/tap/rimonto
 
 Standalone downloads, with no Node.js at all, come later.
 
+Once a day, in a terminal, `rimonto` asks npm whether a newer version is out and says so after the command, with how to
+update (`npm install -g rimonto`, or `brew upgrade rimonto`). It never slows a command by more than a second, stays quiet
+in CI and in pipes, and keeps only the time and the version number it saw (`update-check.json` beside the config file).
+`RIMONTO_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER=1`) switches it off.
+
 ## Sign in
 
 The CLI signs in with an API key. A shop owner makes one in the developer portal, https://developers.rimonto.app,
