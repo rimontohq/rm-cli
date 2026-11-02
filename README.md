@@ -35,6 +35,19 @@ update (`npm install -g rimonto`, or `brew upgrade rimonto`). It never slows a c
 in CI and in pipes, and keeps only the time and the version number it saw (`update-check.json` beside the config file).
 `RIMONTO_NO_UPDATE_CHECK=1` (or `NO_UPDATE_NOTIFIER=1`) switches it off.
 
+## With an AI agent
+
+Install the agent skill, and Claude Code, Cursor, Codex and other coding agents know how to use this CLI: its commands,
+its output, and what to ask you before something a customer sees or that moves money.
+
+```sh
+npx skills add rimontohq/rm-cli            # this project
+npx skills add rimontohq/rm-cli --global   # every project
+```
+
+To ask about your shop in Claude or ChatGPT instead of running commands, connect the assistant:
+https://developers.rimonto.app/ai/.
+
 ## Sign in
 
 The CLI signs in with an API key. A shop owner makes one in the developer portal, https://developers.rimonto.app,
