@@ -1,5 +1,5 @@
 // The CLI against a real core, as a person runs it: `npm run e2e`. Other repositories' CI runs this (the panel's api
-// e2e, on a fresh local Supabase with the demo seed and core); rm-cli's own CI has no core, so it does not.
+// e2e, on a fresh local backend with the demo data); rm-cli's own CI has no core, so it does not.
 //
 //   RIMONTO_E2E_API_URL  required  core's address, like http://localhost:5280
 //   RIMONTO_E2E_KEY      required  a manager API key of the demo company "Fix-It Lab", for all its stores

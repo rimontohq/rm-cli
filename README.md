@@ -257,8 +257,8 @@ RIMONTO_E2E_API_URL=http://localhost:5280 RIMONTO_E2E_KEY=rimonto_sk_… npm run
 | `RIMONTO_E2E_HEADERS` | no | extra headers, passed on as `RIMONTO_HEADERS` (a gate in front of core) |
 | `RIMONTO_E2E_CLI` | no | the `rimonto.js` to test; by default this checkout is built and tested |
 
-rm-cli's own CI does not run it: it has no core. The panel's api e2e does, on a fresh local Supabase with the demo
-data and core. To run it on a computer, start the backend (rm-app-backend's README), sign in as the demo owner, make a
+rm-cli's own CI does not run it: it has no core. The panel's api e2e does, on a fresh local backend with the demo
+data. To run it on a computer, start the backend (rm-app-backend's README), sign in as the demo owner, make a
 manager key with `POST /api-keys`, and revoke it afterwards.
 
 ## License
