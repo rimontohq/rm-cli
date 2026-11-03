@@ -3,6 +3,10 @@
 #   the command table matches spec/openapi.json · the build, which then runs.
 # Not here: `npm run e2e`, which needs a real core; the panel's api e2e runs it.
 # rimonto-ci:local is the CI's runner image (Node 24).
+# Runs on the runner VM, like every check (rm-infra: ops/runner/README.md).
+labels:
+  pool: runner
+
 when:
   - event: pull_request
   - event: push
