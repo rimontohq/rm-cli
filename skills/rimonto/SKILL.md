@@ -31,7 +31,8 @@ npm install -g rimonto
 Or `brew install rimontohq/tap/rimonto`, which brings Node.js along.
 
 It signs in with an API key that starts with `rimonto_sk_`. A shop owner makes one at
-https://developers.rimonto.app/keys/.
+https://developers.rimonto.app/keys/. While Rimonto is in beta, that portal and the hosted API are open to invited
+people only: if the key does not work or the address does not answer, the person may not have access yet.
 
 - `rimonto login` asks for the key with hidden input, so an agent cannot answer it. Ask the person to run it themselves,
   or to set `RIMONTO_API_KEY` in the environment you run in.

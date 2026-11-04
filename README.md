@@ -53,6 +53,9 @@ https://developers.rimonto.app/ai/.
 The CLI signs in with an API key. A shop owner makes one in the developer portal, https://developers.rimonto.app,
 under **API keys**. The key is shown once; it starts with `rimonto_sk_`.
 
+Rimonto is in beta. Until it launches, the developer portal and the hosted API are open to invited people only, so
+without an invitation `rimonto login` cannot reach them. Ask the Rimonto team for access.
+
 ```sh
 rimonto login
 ```
@@ -76,7 +79,7 @@ RIMONTO_API_KEY=rimonto_sk_… rimonto whoami
 the key from the file. The key itself works until the owner revokes it in the developer portal.
 
 A key may do what its role may do. A few commands need a person's own sign-in and refuse a key: making API keys,
-PINs, pairing a counter iPad. Help marks them. Signing in as a person, in a browser, will come in a later version.
+PINs, pairing a counter iPad, companies, AI assistants and supplier applications. Help marks them. Signing in as a person, in a browser, will come in a later version.
 
 ## Examples
 
