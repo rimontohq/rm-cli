@@ -19,7 +19,7 @@ export function describeFailure(res: HttpResponse, ctx: ProblemContext): string[
   const lines: string[] = [];
   const body = res.json;
   const isProblem = isObj(body) && typeof body.title === 'string';
-  if (isProblem) {
+  if (isObj(body) && typeof body.title === 'string') {
     const code = typeof body.code === 'string' ? ` ${body.code}` : '';
     lines.push(`rimonto: ${body.title} (${res.status}${code})`);
     if (typeof body.detail === 'string' && body.detail) lines.push(`  ${body.detail}`);
@@ -28,7 +28,7 @@ export function describeFailure(res: HttpResponse, ctx: ProblemContext): string[
       if (k === 'issues' && Array.isArray(v)) {
         lines.push('  issues:');
         for (const issue of v) {
-          if (isObj(issue)) lines.push(`    - ${issue.path ? `${String(issue.path)}: ` : ''}${String(issue.message ?? JSON.stringify(issue))}`);
+          if (isObj(issue)) lines.push(`    - ${typeof issue.path === 'string' && issue.path ? `${issue.path}: ` : ''}${typeof issue.message === 'string' ? issue.message : JSON.stringify(issue)}`);
           else lines.push(`    - ${JSON.stringify(issue)}`);
         }
       } else lines.push(`  ${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`);

@@ -205,6 +205,7 @@ export function sample(raw: unknown, o: SampleOptions, depth = 0): unknown {
       return o.bool;
     case 'null':
       return null;
+    case undefined:
     default:
       // No type: the schema accepts anything.
       return 'any';

@@ -110,7 +110,7 @@ export function generate(doc: OpenApiDoc): CommandTable {
         apiKey,
         auth,
         list,
-      }) as Omit<Command, 'words'>);
+      }));
       candidatesOf.set(operationId, candidates(method, parts, Boolean(list), operationId));
       if (parts.verb) custom.add(operationId);
     }

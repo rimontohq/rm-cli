@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatMoney, formatTime, pickColumns, renderHuman, renderJson, renderRecord, renderTable } from '../src/output.ts';
+import { formatMoney, formatScalar, formatTime, pickColumns, renderHuman, renderJson, renderRecord, renderTable } from '../src/output.ts';
 
 const opts = { locale: 'en-US', timeZone: 'UTC', width: 200 };
 
@@ -139,5 +139,14 @@ describe('records', () => {
 
   it('keeps JSON as the API sent it', () => {
     expect(renderJson({ total_minor: 2176 })).toBe('{\n  "total_minor": 2176\n}');
+  });
+});
+
+describe('values that are not text', () => {
+  it('are written as JSON, never as "[object Object]"', () => {
+    expect([renderHuman(42), renderHuman(true), renderHuman('ready')]).toEqual(['42', 'true', 'ready']);
+    expect(formatScalar({ sku: 'a' }, 'part', undefined)).toBe('{"sku":"a"}');
+    expect(formatScalar(['a', 1], 'tags', undefined)).toBe('["a",1]');
+    expect(formatScalar(2.5, 'qty', undefined)).toBe('2.5');
   });
 });

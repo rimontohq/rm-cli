@@ -209,7 +209,7 @@ function flagRows(flags: FlagSpec[]): string[] {
       if (field.enum) bits.push(`One of: ${field.enum.join(', ')}`);
       if (field.type === 'array') bits.push(field.enum || field.format === 'uuid' || field.items === 'integer' ? 'Repeat it or separate with commas' : 'Repeat for more');
       if (field.name.endsWith('_minor')) bits.push('Money in minor units (2500 for 25.00)');
-      if (field.default !== undefined && field.default !== '' && typeof field.default !== 'object') bits.push(`Default: ${String(field.default)}`);
+      if (field.default !== undefined && field.default !== '' && typeof field.default !== 'object') bits.push(`Default: ${typeof field.default === 'string' ? field.default : JSON.stringify(field.default)}`);
       if (field.nullable && field.type !== 'string' && field.type !== 'boolean') bits.push('null clears it');
     }
     if (f.help) bits.push(f.help);
