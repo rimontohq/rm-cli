@@ -4,7 +4,8 @@
 // own and this repository's .gitleaks.toml (Rimonto's API keys, Supabase's secret keys, and what here only looks like a key).
 //
 //   node scripts/gitleaks.mjs staged    what a commit is about to add (the pre-commit hook)
-//   node scripts/gitleaks.mjs branch    the commits not yet on dev: in a pull request's check, its target branch's
+//   node scripts/gitleaks.mjs branch    the commits not yet on dev (in a pull request's check, its target branch); every
+//                                       commit when there is no dev to compare with, never the folder's untracked files
 //   node scripts/gitleaks.mjs history   every commit there is
 //   node scripts/gitleaks.mjs <args>    gitleaks itself, with these arguments
 //
@@ -69,8 +70,16 @@ function branchRange() {
   const target = process.env.CI_COMMIT_TARGET_BRANCH;
   const base = target ? `origin/${target}` : 'origin/dev';
   if (target) {
-    try { git('fetch', '-q', '--unshallow'); } catch { /* a full clone already */ }
-    try { git('fetch', '-q', '--no-tags', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`); } catch { /* offline */ }
+    // A check's other steps may run git in the same clone at the same moment: a fetch that meets their lock tries again.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        try { git('fetch', '-q', '--unshallow'); } catch { /* a full clone already */ }
+        git('fetch', '-q', '--no-tags', 'origin', `+refs/heads/${target}:refs/remotes/origin/${target}`);
+        break;
+      } catch {
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 2000);
+      }
+    }
   }
   try {
     git('rev-parse', '--verify', '-q', base);
@@ -87,8 +96,8 @@ export function argsFor(mode, rest, range = branchRange) {
   if (mode === 'history') return ['git', ...common, ...rest];
   if (mode === 'branch') {
     const commits = range();
-    // On dev itself, or with no dev to compare with: the files as they are now.
-    return commits ? ['git', `--log-opts=${commits}`, ...common, ...rest] : ['dir', '.', ...common, ...rest];
+    // On dev itself, or with no dev to compare with: every commit, never the folder (a build's output is there, untracked).
+    return commits ? ['git', `--log-opts=${commits}`, ...common, ...rest] : ['git', ...common, ...rest];
   }
   return [mode, ...rest].filter(Boolean);
 }
