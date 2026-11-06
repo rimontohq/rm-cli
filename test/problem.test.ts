@@ -17,6 +17,8 @@ describe('describeFailure', () => {
   it('lists validation issues', () => {
     const lines = describeFailure(res(400, { title: 'Invalid body', status: 400, code: 'invalid-request', issues: [{ path: 'status', message: 'Invalid option' }] }), ctx);
     expect(lines).toEqual(['rimonto: Invalid body (400 invalid-request)', '  issues:', '    - status: Invalid option']);
+    const odd = describeFailure(res(400, { title: 'Invalid body', status: 400, issues: [{ path: ['a', 1], message: { text: 'x' } }] }), ctx);
+    expect(odd.at(-1)).toBe('    - {"path":["a",1],"message":{"text":"x"}}');
   });
 
   it('says how to sign in after a 401', () => {

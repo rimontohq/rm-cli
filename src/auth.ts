@@ -187,7 +187,7 @@ export async function authStatus(s: Session): Promise<number> {
     for (const { entry } of entries) {
       s.out(`${entry.name}${entry.active ? ' (in use)' : entry.name === ctx.profileName && envKey ? ' (RIMONTO_API_KEY is used instead)' : ''}`);
       const pairs: [string, string][] = [['API', entry.api_url], ['Key', entry.key ?? 'none: run `rimonto login' + (entry.name === 'default' ? '' : ` --profile ${entry.name}`) + '`']];
-      if (entry.whoami) pairs.push(...describeCaller(entry.whoami as Caller));
+      if (entry.whoami) pairs.push(...describeCaller(entry.whoami));
       if (entry.error) pairs.push(['Error', entry.error]);
       for (const l of lines(pairs, '  ')) s.out(l);
     }

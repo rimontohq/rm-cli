@@ -172,7 +172,7 @@ describe.each(lists)('rimonto $name --all', ({ cmd, op }) => {
       env, home,
       handler: (_, n) => json(200, n === 1 ? { ...page, next_page_token: 'page-2' } : page),
     });
-    expect(r.code, `${r.stderr}`).toBe(0);
+    expect(r.code, r.stderr).toBe(0);
     expect(r.requests.flatMap((req) => requestProblems(op, req, { basePath: BASE_PATH, path: inv.path, key: KEY }))).toEqual([]);
     expect(r.requests.map((req) => new URL(req.url).searchParams.get(cmd.list!.pageToken!))).toEqual([null, 'page-2']);
     const rows = page[cmd.list!.key] as unknown[];
@@ -183,7 +183,7 @@ describe.each(lists)('rimonto $name --all', ({ cmd, op }) => {
 describe.each(withRequired)('rimonto $name without its required input', ({ cmd, inv, parts }) => {
   it.each(parts)('refuses a missing $missing, before sending anything', async (part) => {
     const r = await cli(argvOf(inv, part), { env, home, handler: () => json(200, {}) });
-    expect(r.code, `${r.stderr}`).toBe(64);
+    expect(r.code, r.stderr).toBe(64);
     expect(r.stderr).toContain(`rimonto: ${cmd.words.join(' ')}: missing `);
     expect(r.stderr).toContain(part.missing);
     expect(r.requests).toHaveLength(0);

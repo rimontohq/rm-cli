@@ -34,7 +34,7 @@ export function fakeFetch(handler: Handler): { fetch: typeof fetch; requests: Se
     const headers: Record<string, string> = {};
     for (const [k, v] of Object.entries((init?.headers ?? {}) as Record<string, string>)) headers[k.toLowerCase()] = v;
     const body = typeof init?.body === 'string' ? JSON.parse(init.body) : undefined;
-    const req: SentRequest = { method: init?.method ?? 'GET', url: String(input), headers, body };
+    const req: SentRequest = { method: init?.method ?? 'GET', url: typeof input === 'string' ? input : input instanceof URL ? input.href : input.url, headers, body };
     requests.push(req);
     const out = await handler(req, requests.length);
     if (out instanceof Error) throw out;

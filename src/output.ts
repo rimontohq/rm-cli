@@ -29,7 +29,7 @@ export function renderHuman(data: unknown, opts: RenderOptions = {}): string {
     return renderRecord(unwrap(data), opts);
   }
   if (data === undefined || data === null || data === '') return '';
-  return String(data);
+  return typeof data === 'string' ? data : JSON.stringify(data);
 }
 
 /** The array of records in an answer like `{ "tickets": [...], "next_page_token": "..." }`. */
@@ -111,7 +111,7 @@ interface Column {
 export function renderTable(rows: unknown[], opts: RenderOptions = {}): string {
   if (!rows.length) return '(none)';
   if (!rows.every(isObj)) return rows.map((r) => (isObj(r) || Array.isArray(r) ? JSON.stringify(r) : formatScalar(r, '', undefined, opts))).join('\n');
-  const records = rows as Record<string, unknown>[];
+  const records = rows;
   const chosen = Boolean(opts.columns?.length);
   let keys: string[];
   if (chosen) keys = opts.columns!;
@@ -239,7 +239,7 @@ export function formatScalar(v: unknown, key: string, currency: string | undefin
     const allDay = key.endsWith('_at') && row?.[`${key.slice(0, -3)}_all_day`] === true;
     return allDay ? formatDate(v, opts.timeZone) : formatTime(v, opts.timeZone);
   }
-  return String(v);
+  return typeof v === 'string' ? v : JSON.stringify(v) ?? '';
 }
 
 /** 2176 → `21.76 USD`; the currency decides the decimals (JPY has none). Without one: `21.76`. */

@@ -14,7 +14,7 @@ import { collectPages } from './paginate.ts';
 import { describeFailure, retryHint } from './problem.ts';
 import { readAll, type TtyInput } from './prompt.ts';
 import { closest } from './suggest.ts';
-import { buildTree, resolve, type Builtin, type Node } from './tree.ts';
+import { buildTree, resolve, type Node } from './tree.ts';
 import type { Command, CommandTable, ListInfo } from './types.ts';
 import { VERSION } from './version.ts';
 
@@ -151,7 +151,7 @@ async function main(io: Io): Promise<number> {
       return authStatus(session);
     case 'api':
       return api(session, line);
-    default:
+    case undefined:
       return runCommand(session, node.command!, line);
   }
 }
@@ -169,7 +169,10 @@ function flagsOf(node: Node): FlagSpec[] {
         { name: 'idempotency-key', type: 'string', help: '' },
         { name: 'columns', type: 'string', help: '' },
       ];
-    default:
+    case 'logout':
+    case 'auth status':
+    case 'help':
+    case undefined:
       return [];
   }
 }
@@ -177,7 +180,7 @@ function flagsOf(node: Node): FlagSpec[] {
 function helpFor(node: Node, table: CommandTable, root: Node): string {
   if (node === root) return rootHelp(table);
   if (node.command) return commandHelp(node.command);
-  if (node.builtin) return builtinHelp(node.builtin as Builtin);
+  if (node.builtin) return builtinHelp(node.builtin);
   const prefix = node.words;
   const commands = table.commands.filter((c) => prefix.every((w, i) => c.words[i] === w));
   // A group of the CLI's own (`auth`): its one command's help.

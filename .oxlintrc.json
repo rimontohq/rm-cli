@@ -1,5 +1,7 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Type-aware rules need the types: oxlint-tsgolint builds them from tsconfig.json.
+  "options": { "typeAware": true },
   "plugins": ["typescript", "unicorn", "oxc", "import", "vitest", "node"],
   "categories": {
     "correctness": "error",
@@ -8,7 +10,37 @@
   "env": { "node": true, "es2022": true },
   "rules": {
     "typescript/no-explicit-any": "error",
-    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrors": "none" }]
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrors": "none" }],
+    // Vitest's expect takes a message after the value: expect(code, stderr).toBe(0).
+    "vitest/valid-expect": ["error", { "maxArgs": 2 }],
+
+    // With types: typescript-eslint's recommended-type-checked, without its no-unsafe-* rules (any) and require-await,
+    // plus switch-exhaustiveness-check and require-array-sort-compare.
+    "typescript/await-thenable": "error",
+    "typescript/no-array-delete": "error",
+    "typescript/no-base-to-string": "error",
+    "typescript/no-duplicate-type-constituents": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/no-for-in-array": "error",
+    "typescript/no-implied-eval": "error",
+    "typescript/no-misused-promises": "error",
+    "typescript/no-misused-spread": "error",
+    "typescript/no-redundant-type-constituents": "error",
+    "typescript/no-unnecessary-type-assertion": "error",
+    "typescript/only-throw-error": ["error", { "allowThrowingUnknown": true }],
+    "typescript/prefer-promise-reject-errors": ["error", { "allowThrowingUnknown": true }],
+    "typescript/require-array-sort-compare": "error",
+    "typescript/restrict-plus-operands": "error",
+    "typescript/restrict-template-expressions": ["error", { "allow": [{ "from": "lib", "name": ["Error", "URL", "URLSearchParams"] }, { "from": "package", "name": ["URL", "URLSearchParams"], "package": "url" }] }],
+    "typescript/switch-exhaustiveness-check": "error",
+    "typescript/unbound-method": "error",
+    // Off: an assertion narrower than the declared type is how the tests build fakes and how parsed JSON gets its shape.
+    "typescript/no-unsafe-type-assertion": "off",
+    // Off: a Number() or String() around a value from the API or from JSON is often what makes its declared type true.
+    "typescript/no-unnecessary-type-conversion": "off",
+    // Off: TypeScript already refuses a function with a declared return type that can end without one (TS2366), and
+    // this rule does not see that a switch over every value of a union cannot fall through.
+    "typescript/consistent-return": "off"
   },
   "ignorePatterns": ["dist/**", "coverage/**", "node_modules/**", "src/generated/**", "spec/**"]
 }
