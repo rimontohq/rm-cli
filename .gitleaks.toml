@@ -1,0 +1,24 @@
+# Secret scanning (scripts/gitleaks.mjs): gitleaks' own rules, Rimonto's two below, and what in this repository only
+# looks like a key, each with why. A real key never goes here: it is taken out of the change and rotated.
+title = "rm-cli"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "rimonto-api-key"
+description = "A Rimonto API key: rimonto_sk_ and 40 letters and digits (core's API_KEY_PATTERN)"
+regex = '''rimonto_sk_[A-Za-z0-9]{40}'''
+keywords = ["rimonto_sk_"]
+
+[[rules]]
+id = "supabase-secret-key"
+description = "A Supabase secret key, which passes every row-level security policy"
+regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
+keywords = ["sb_secret_"]
+
+[[allowlists]]
+description = "The tests' made-up API keys, shorter than a real one"
+condition = "AND"
+paths = ['''^test/''']
+regexes = ['''^rimonto_sk_(test1234|live_abcdefgh1234)$''']
