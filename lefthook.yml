@@ -14,6 +14,9 @@ pre-commit:
     oxlint:
       glob: "{src,test,scripts}/**/*.{ts,js,mjs}"
       run: npx oxlint -c .oxlintrc.json --max-warnings 0 {staged_files}
+    # Secrets in anything staged, of any kind of file (scripts/gitleaks.mjs).
+    secrets:
+      run: node scripts/gitleaks.mjs staged
 
 pre-push:
   parallel: true

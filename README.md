@@ -284,3 +284,5 @@ MIT. See [LICENSE](LICENSE).
 ## Git hooks
 
 Git runs this repository's linters for you (`lefthook.yml`, installed by `npm install` or `npm ci`): before a commit on the files in it, and the lint and the types before a push, as the CI's check does. `LEFTHOOK=0 git …` skips them once.
+
+Secrets are scanned the same way (`scripts/gitleaks.mjs`, gitleaks with `.gitleaks.toml`): what a commit adds, before it is made; the branch's commits, in `npm run lint` and so before a push and in the check. It downloads gitleaks once, checked against the release's SHA-256, on macOS, Linux and Windows. A finding shows its file and line, never its value. A real key comes out of the change and is rotated; something that only looks like one goes into `.gitleaks.toml` with why. `npm run lint:secrets` runs it by hand; `node scripts/gitleaks.mjs history` reads every commit.
