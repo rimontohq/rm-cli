@@ -280,3 +280,7 @@ manager key with `POST /api-keys`, and revoke it afterwards.
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+## Git hooks
+
+Git runs this repository's linters for you (`lefthook.yml`, installed by `npm install` or `npm ci`): before a commit on the files in it, and the lint and the types before a push, as the CI's check does. `LEFTHOOK=0 git …` skips them once.

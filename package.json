@@ -26,6 +26,7 @@
     "api"
   ],
   "scripts": {
+    "prepare": "lefthook install || exit 0",
     "start": "node src/main.ts",
     "build": "node scripts/build.ts",
     "spec": "node scripts/spec.ts",
@@ -44,6 +45,7 @@
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
     "esbuild": "^0.28.2",
+    "lefthook": "^2.2.2",
     "oxlint": "^1.90.0",
     "typescript": "^7.0.2",
     "vitest": "^5.0.5"

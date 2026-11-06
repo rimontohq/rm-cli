@@ -1,0 +1,26 @@
+# Git's hooks, for everyone who works in this repository: `npm install` or `npm ci` installs them (the prepare script).
+# Before a commit, the linters on the files in it; before a push, the lint and the types as the CI's check runs them. Skipped in
+# a merge or a rebase, and while node_modules is missing (a worktree not installed yet). `LEFTHOOK=0 git commit …` skips them once.
+# `**` matches no folder too, as in a shell: src/**/*.ts takes src/a.ts (lefthook's default would not).
+glob_matcher: doublestar
+
+pre-commit:
+  parallel: true
+  skip:
+    - merge
+    - rebase
+    - run: test ! -d node_modules
+  commands:
+    oxlint:
+      glob: "{src,test,scripts}/**/*.{ts,js,mjs}"
+      run: npx oxlint -c .oxlintrc.json --max-warnings 0 {staged_files}
+
+pre-push:
+  parallel: true
+  skip:
+    - run: test ! -d node_modules
+  commands:
+    lint:
+      run: npm run lint
+    typecheck:
+      run: npm run typecheck
