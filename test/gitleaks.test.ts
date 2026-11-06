@@ -13,7 +13,9 @@ describe('the modes', () => {
   it('read what a commit adds, the branch, or the whole history; anything else goes to gitleaks as it is', () => {
     expect(argsFor('staged', [])).toEqual(expect.arrayContaining(['git', '--pre-commit', '--staged', '--redact']));
     expect(argsFor('branch', [], () => 'origin/dev..HEAD').slice(0, 2)).toEqual(['git', '--log-opts=origin/dev..HEAD']);
-    expect(argsFor('branch', [], () => null).slice(0, 2)).toEqual(['dir', '.']);
+    // With no dev to compare with: every commit, never the folder, where a build's untracked output may lie.
+    expect(argsFor('branch', [], () => null).slice(0, 2)).toEqual(['git', '--redact']);
+    expect(argsFor('branch', [], () => null)).not.toContain('dir');
     expect(argsFor('history', [])[0]).toBe('git');
     expect(argsFor('version', [])).toEqual(['version']);
     for (const mode of ['staged', 'branch', 'history']) expect(argsFor(mode, [], () => null)).toContain('--redact');
