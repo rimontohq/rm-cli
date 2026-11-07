@@ -20,7 +20,7 @@ interface OpenApi {
   [k: string]: unknown;
 }
 
-export const spec = JSON.parse(readFileSync(new URL('../spec/openapi.json', import.meta.url), 'utf8')) as OpenApi;
+const spec = JSON.parse(readFileSync(new URL('../spec/openapi.json', import.meta.url), 'utf8')) as OpenApi;
 
 // The whole document is one schema to Ajv, so every `#/components/schemas/…` inside resolves; each check compiles
 // `{ $ref: "openapi.json#/paths/…" }`. Not strict: OpenAPI's own keywords (`example`) sit beside JSON Schema's.
@@ -55,7 +55,7 @@ export function schemaAt(at: (string | number)[]): Json {
 }
 
 /** Follows local `$ref`s. */
-export function resolve(v: unknown, depth = 0): Json {
+function resolve(v: unknown, depth = 0): Json {
   if (!isObj(v)) return {};
   if (typeof v.$ref !== 'string' || depth > 32) return v;
   let target: unknown = spec;
@@ -67,7 +67,7 @@ export function resolve(v: unknown, depth = 0): Json {
 
 // Operations.
 
-export interface Param {
+interface Param {
   name: string;
   in: string;
   required: boolean;
@@ -133,9 +133,9 @@ export interface SampleOptions {
 }
 
 /** Only the required fields, no nulls, one item per list: what a person types first. */
-export const REQUIRED_INPUT: SampleOptions = { all: false, nulls: false, items: 1, bool: false };
+const REQUIRED_INPUT: SampleOptions = { all: false, nulls: false, items: 1, bool: false };
 /** Every field. */
-export const EVERY_INPUT: SampleOptions = { all: true, nulls: false, items: 2, bool: true };
+const EVERY_INPUT: SampleOptions = { all: true, nulls: false, items: 2, bool: true };
 /** The smallest valid answer: required fields, null where allowed, two rows in a list. */
 export const MINIMAL_ANSWER: SampleOptions = { all: false, nulls: true, items: 2, bool: false };
 /** Every field of an answer, none null. */
@@ -145,7 +145,7 @@ export class Unsynthesisable extends Error {}
 
 let uuids = 0;
 /** A new UUID (v4 shape), different each time, so two ids in one request differ. */
-export const nextUuid = () => `00000000-0000-4000-8000-${(++uuids).toString(16).padStart(12, '0')}`;
+const nextUuid = () => `00000000-0000-4000-8000-${(++uuids).toString(16).padStart(12, '0')}`;
 
 const typesOf = (s: Json): string[] => (Array.isArray(s.type) ? s.type.map(String) : typeof s.type === 'string' ? [s.type] : []);
 
