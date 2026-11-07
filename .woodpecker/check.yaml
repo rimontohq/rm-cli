@@ -27,6 +27,12 @@ steps:
       - node dist/rimonto.js --version
       - node dist/rimonto.js --help > /dev/null
 
+  # Known vulnerabilities in package-lock.json (scripts/osv.mjs, and osv-scanner.toml were there an exception). A step of its
+  # own: it asks osv.dev, so a new advisory can fail code nobody touched, and then it says so here.
+  - name: known vulnerabilities
+    image: rimonto-ci:local
+    commands: [node scripts/osv.mjs]
+
   # A pull request that changes what users get raises the version: its merge into dev publishes it (README, "Releasing").
   - name: version
     image: rimonto-ci:local
