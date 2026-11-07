@@ -17,6 +17,10 @@ pre-commit:
     # Secrets in anything staged, of any kind of file (scripts/gitleaks.mjs).
     secrets:
       run: node scripts/gitleaks.mjs staged
+    # The staged shell scripts and pipelines: shellcheck, woodpecker-cli (and hadolint, were there a Dockerfile); scripts/lint-ops.mjs
+    # picks them itself, as a shell script may have no extension.
+    ops:
+      run: node scripts/lint-ops.mjs staged
 
 pre-push:
   parallel: true
