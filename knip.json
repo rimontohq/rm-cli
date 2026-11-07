@@ -1,0 +1,21 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // knip, in `npm run lint`: a file nobody imports, an export nobody uses or a dependency nobody needs fails the lint.
+  // It finds most entry points itself, from package.json's scripts, lefthook.yml and .github/workflows; what only the
+  // CI runs is listed here, as knip does not read .woodpecker/.
+  "entry": [
+    // .woodpecker/check.yaml: `node scripts/osv.mjs`, `node --test scripts/lint-ops.test.mjs` and, on a pull request,
+    // `node scripts/version-check.mjs`.
+    "scripts/osv.mjs",
+    "scripts/lint-ops.test.mjs",
+    "scripts/version-check.mjs"
+  ],
+  // An export that only its own file uses is not dead code, so for now it is not reported. In src/ nineteen exports
+  // (fourteen functions, MAX_WAIT_MS and four interfaces) are used only in the file that declares them; taking off their
+  // `export` changes src/, and a change to src/ is a new version (scripts/version-check.mjs). The next pull request that
+  // raises the version for its own reasons takes them off and this line out, and from then on knip reports such an
+  // export too. An export nobody uses at all is reported now.
+  "ignoreExportsUsedInFile": true,
+  // A knip.json entry that no longer matches anything fails the lint too, so no exception outlives its reason.
+  "treatConfigHintsAsErrors": true
+}
