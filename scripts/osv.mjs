@@ -19,7 +19,16 @@
 //       id = "GHSA-xxxx-xxxx-xxxx"
 //       ignoreUntil = 2027-01-31
 //       reason = "Only the build's dev server uses it, on developers' own computers; no fix released yet."
-//   An entry with no reason or no ignoreUntil, or one further ahead than that, fails too.
+//   An entry with no reason or no date, or one further ahead than that, fails too. The date's key depends on the table
+//   (OSV-Scanner's configuration docs, https://google.github.io/osv-scanner/configuration/): `ignoreUntil` in
+//   [[IgnoredVulns]], `effectiveUntil` in [[PackageOverrides]]. The scanner refuses the other one ("unknown keys in
+//   config file"), so a package-wide exception is written as:
+//       [[PackageOverrides]]
+//       name = "<package>"
+//       ecosystem = "npm"
+//       vulnerability.ignore = true
+//       effectiveUntil = 2027-01-31
+//       reason = "<why>"
 //
 // The database is not in the binary: each scan sends the packages to osv.dev's API (api.osv.dev) and gets back what is
 // known about them that day. So a new advisory reaches the check without a change here, and the scan needs the network.
@@ -161,7 +170,7 @@ export function describeFinding(finding) {
 
 /**
  * The exceptions in osv-scanner.toml: each [[IgnoredVulns]] or [[PackageOverrides]] entry with its id or name, reason
- * and ignoreUntil. Reads only the TOML this file needs (tables of `key = value` lines); OSV-Scanner reads it in full.
+ * and date (`ignoreUntil` or `effectiveUntil`, whichever is written). Reads only the TOML this file needs (tables of `key = value` lines); OSV-Scanner reads it in full.
  */
 export function parseExceptions(text) {
   const entries = [];
@@ -185,14 +194,18 @@ export function parseExceptions(text) {
     const key = line.slice(0, Math.max(equals, 0)).trim();
     if (entry && KEY.test(key)) entry.values[key.replace(/^"|"$/g, '')] = line.slice(equals + 1).trim();
   });
-  return entries.map(({ table, line, values }) => ({
-    table,
-    line,
-    id: stringOf(values.id ?? values.name),
-    reason: stringOf(values.reason),
-    // As written: a date in quotes is a string, which OSV-Scanner does not take for a date.
-    ignoreUntil: values.ignoreUntil === undefined ? null : withoutComment(values.ignoreUntil),
-  }));
+  return entries.map(({ table, line, values }) => {
+    const until = UNTIL_KEYS.find((key) => values[key] !== undefined);
+    return {
+      table,
+      line,
+      id: stringOf(values.id ?? values.name),
+      reason: stringOf(values.reason),
+      // As written: a date in quotes is a string, which OSV-Scanner does not take for a date.
+      until: until === undefined ? null : withoutComment(values[until]),
+      untilKey: until ?? null,
+      };
+  });
 }
 
 /** A TOML string's text, or null for no value or one that is not a string on one line. */
@@ -201,6 +214,11 @@ function stringOf(raw) {
   if (!quoted) return null;
   return quoted[1] === undefined ? quoted[2] : JSON.parse(`"${quoted[1]}"`);
 }
+
+/** The key that holds an exception's last day, in each table: the scanner takes the other one in neither. */
+export const UNTIL_KEY = { IgnoredVulns: 'ignoreUntil', PackageOverrides: 'effectiveUntil' };
+const UNTIL_KEYS = Object.values(UNTIL_KEY);
+export const untilKeyOf = (table) => UNTIL_KEY[table] ?? UNTIL_KEY.IgnoredVulns;
 
 const KEY = /^(?:[\w.-]+|"[^"]*")$/;
 
@@ -222,24 +240,29 @@ function isTime(text) {
   return clock !== null && OFFSET.test(text.slice(clock[0].length));
 }
 
-/** What is wrong with the exceptions: a line for each entry with no reason, no ignoreUntil, or one too far ahead. */
+/** What is wrong with the exceptions: a line for each entry with no reason, no date, a date under the wrong key, or one too far ahead. */
 export function problems(exceptions, today = new Date()) {
   const limit = new Date(today.getTime() + MAX_DAYS * 24 * 60 * 60 * 1000);
   const out = [];
   for (const exception of exceptions) {
     const name = `${CONFIG}:${exception.line} ${exception.id ?? `[[${exception.table}]]`}`;
+    const key = untilKeyOf(exception.table);
     if (!exception.reason?.trim()) out.push(`${name}: no reason. Say why it does not reach our code, or that no fix is released yet.`);
-    if (!exception.ignoreUntil) {
-      out.push(`${name}: no ignoreUntil. Give the day it is looked at again, at most ${MAX_DAYS} days ahead (ignoreUntil = 2027-01-31, no quotes).`);
+    if (!exception.until) {
+      out.push(`${name}: no ${key}. Give the day it is looked at again, at most ${MAX_DAYS} days ahead (${key} = 2027-01-31, no quotes).`);
       continue;
     }
-    const [day, time] = [exception.ignoreUntil.slice(0, 10), exception.ignoreUntil.slice(10)];
+    if (exception.untilKey !== key) {
+      out.push(`${name}: ${exception.untilKey} does not belong in [[${exception.table}]], and OSV-Scanner refuses the config over it. Use ${key} there (${UNTIL_KEY.IgnoredVulns} in [[IgnoredVulns]], ${UNTIL_KEY.PackageOverrides} in [[PackageOverrides]]).`);
+      continue;
+    }
+    const [day, time] = [exception.until.slice(0, 10), exception.until.slice(10)];
     const date = DAY.test(day) && isTime(time);
-    const until = date ? new Date(time ? exception.ignoreUntil : `${day}T00:00:00Z`) : null;
+    const until = date ? new Date(time ? exception.until : `${day}T00:00:00Z`) : null;
     if (!until || Number.isNaN(until.getTime())) {
-      out.push(`${name}: ignoreUntil ${exception.ignoreUntil} is not a TOML date (ignoreUntil = 2027-01-31, no quotes).`);
+      out.push(`${name}: ${key} ${exception.until} is not a TOML date (${key} = 2027-01-31, no quotes).`);
     } else if (until > limit) {
-      out.push(`${name}: ignoreUntil ${exception.ignoreUntil} is more than ${MAX_DAYS} days ahead. Look at it again sooner.`);
+      out.push(`${name}: ${key} ${exception.until} is more than ${MAX_DAYS} days ahead. Look at it again sooner.`);
     }
   }
   return out;
@@ -284,9 +307,16 @@ export function scan({
       `osv: ${found.length === 1 ? '1 known vulnerability' : `${found.length} known vulnerabilities`} in the dependencies (https://osv.dev/vulnerability/<id>). For each one:`,
       '  - fixed in a version: move to it (package.json for a direct dependency, `npm update <name>` for one that comes through another);',
       `  - no fix yet, or our code never reaches it: write it down in ${CONFIG}, with why and until when (at most ${MAX_DAYS} days ahead):`,
-      '      [[IgnoredVulns]]',
+      '      [[IgnoredVulns]]                  (one advisory)',
       '      id = "<its id>"',
       '      ignoreUntil = <a date, as 2027-01-31>',
+      '      reason = "<why>"',
+      '    or, for a whole package, with the other key:',
+      '      [[PackageOverrides]]',
+      '      name = "<package>"',
+      '      ecosystem = "npm"',
+      '      vulnerability.ignore = true',
+      '      effectiveUntil = <a date, as 2027-01-31>',
       '      reason = "<why>"',
     ].join('\n'));
   } else if (run.status === 1) {
