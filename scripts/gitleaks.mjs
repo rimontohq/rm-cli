@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Secret scanning with gitleaks (https://github.com/gitleaks/gitleaks), the same in every Rimonto repository: the git hook
 // before a commit, `npm run lint` (so the check and the hook before a push), and an audit of the whole history. Rules: gitleaks'
-// own and this repository's .gitleaks.toml (Rimonto's API keys, Supabase's secret keys, and what here only looks like a key).
+// own and this repository's .gitleaks.toml (Rimonto's API keys, the backend's secret keys, and what here only looks like a key).
 //
 //   node scripts/gitleaks.mjs staged    what a commit is about to add (the pre-commit hook)
 //   node scripts/gitleaks.mjs branch    the commits not yet on dev (in a pull request's check, its target branch); every
@@ -11,7 +11,9 @@
 //
 // No install step on any computer: gitleaks VERSION is downloaded once from its official release into a cache folder of
 // this user (GITLEAKS_CACHE to put it elsewhere), and kept only if its SHA-256 is the one written below, on macOS, Linux and
-// Windows. Secrets are never printed (--redact). Exits as gitleaks does: 1 when it found a leak.
+// Windows. The release's address first, and when it fails the same file through GitHub's API, a few times over: a CI step
+// starts with no cache, so a bad hour of one of them would fail every check. Secrets are never printed (--redact). Exits as
+// gitleaks does: 1 when it found a leak.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { chmodSync, existsSync, mkdirSync, renameSync, rmSync, writeFileSync } from 'node:fs';
@@ -30,6 +32,45 @@ const SHA256 = {
   'win32-x64': 'd29144deff3a68aa93ced33dddf84b7fdc26070add4aa0f4513094c8332afc4e',
 };
 
+const RELEASE = `https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}`;
+const RELEASE_API = `https://api.github.com/repos/gitleaks/gitleaks/releases/tags/v${VERSION}`;
+const TIMEOUT_MS = 60_000;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** The same file through GitHub's API: the release's asset by its name, then the asset's bytes. */
+async function viaApi(file, get) {
+  const release = await get(RELEASE_API, { headers: { accept: 'application/vnd.github+json' }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+  if (!release.ok) return release;
+  const asset = (await release.json()).assets?.find((a) => a.name === file);
+  if (!asset) throw new Error(`the release has no ${file}`);
+  return get(asset.url, { headers: { accept: 'application/octet-stream' }, signal: AbortSignal.timeout(TIMEOUT_MS) });
+}
+
+/**
+ * A file of the release, as bytes: its download address, then GitHub's API, `tries` rounds with a pause after each. What
+ * comes back is not trusted yet: the caller checks its SHA-256.
+ */
+export async function download(file, { get = fetch, pause = sleep, tries = 3 } = {}) {
+  const sources = [
+    { name: 'release', from: () => get(`${RELEASE}/${file}`, { signal: AbortSignal.timeout(TIMEOUT_MS) }) },
+    { name: 'API', from: () => viaApi(file, get) },
+  ];
+  const failures = [];
+  for (let round = 1; round <= tries; round++) {
+    for (const { name, from } of sources) {
+      try {
+        const res = await from();
+        if (res.ok) return Buffer.from(await res.arrayBuffer());
+        failures.push(`${name} ${String(res.status)}`);
+      } catch (error) {
+        failures.push(`${name} ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (round < tries) await pause(round * 5000);
+  }
+  throw new Error(`Downloading ${file} failed: ${failures.join(', ')}.`);
+}
+
 const cacheRoot = () => process.env.GITLEAKS_CACHE
   ?? (process.platform === 'win32' ? join(process.env.LOCALAPPDATA ?? tmpdir(), 'rimonto') : join(homedir(), '.cache', 'rimonto'));
 
@@ -43,9 +84,7 @@ export async function gitleaks() {
   if (existsSync(bin)) return bin;
   const [os, arch] = [{ darwin: 'darwin', linux: 'linux', win32: 'windows' }[process.platform], process.arch];
   const file = `gitleaks_${VERSION}_${os}_${arch}.${process.platform === 'win32' ? 'zip' : 'tar.gz'}`;
-  const res = await fetch(`https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/${file}`);
-  if (!res.ok) throw new Error(`Downloading ${file} failed: ${res.status}.`);
-  const archive = Buffer.from(await res.arrayBuffer());
+  const archive = await download(file);
   const got = createHash('sha256').update(archive).digest('hex');
   if (got !== sha) throw new Error(`${file} is not the release's file (SHA-256 ${got}, expected ${sha}): not used.`);
   const work = `${dir}.part-${process.pid}`;

@@ -12,8 +12,8 @@ regex = '''rimonto_sk_[A-Za-z0-9]{40}'''
 keywords = ["rimonto_sk_"]
 
 [[rules]]
-id = "supabase-secret-key"
-description = "A Supabase secret key, which passes every row-level security policy"
+id = "backend-secret-key"
+description = "A secret key of the backend, which passes every row-level security policy"
 regex = '''sb_secret_[A-Za-z0-9_-]{20,}'''
 keywords = ["sb_secret_"]
 
