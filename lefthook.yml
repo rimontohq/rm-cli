@@ -1,16 +1,22 @@
-# Git's hooks, for everyone who works in this repository: `npm install` or `npm ci` installs them (the prepare script).
-# Before a commit, the linters on the files in it; before a push, the lint and the types as the CI's check runs them. Skipped in
-# a merge or a rebase, and while node_modules is missing (a worktree not installed yet). `LEFTHOOK=0 git commit …` skips them once.
+# Git's hooks, for everyone who works in this repository: `npm install` or `npm ci` installs them in a checkout, and a worktree
+# runs its checkout's, which start the checkout's lefthook on the worktree's files and this file there (the prepare script,
+# scripts/git-hooks.mjs). Before a commit, the linters on the files in it; before a push, the lint and the types as the CI's
+# check runs them. Skipped in a merge or a rebase, never otherwise: a hook that is wrong is fixed here.
 # `**` matches no folder too, as in a shell: src/**/*.ts takes src/a.ts (lefthook's default would not).
 glob_matcher: doublestar
+# A hook that cannot find lefthook (the copy that installed it is gone, and the working tree has no node_modules) refuses,
+# rather than letting the commit or the push through unchecked.
+assert_lefthook_installed: true
 
 pre-commit:
   parallel: true
   skip:
     - merge
     - rebase
-    - run: test ! -d node_modules
   commands:
+    # Without node_modules there is no linter to run: the commit waits for the install, and never goes through unchecked.
+    installed:
+      run: 'test -d node_modules || { echo "node_modules is missing: run npm ci first, which installs the tools these checks run."; exit 1; }'
     oxlint:
       glob: "{src,test,scripts}/**/*.{ts,js,mjs}"
       run: npx oxlint -c .oxlintrc.json --max-warnings 0 {staged_files}
@@ -24,9 +30,10 @@ pre-commit:
 
 pre-push:
   parallel: true
-  skip:
-    - run: test ! -d node_modules
   commands:
+    # Without node_modules there is no linter to run: the push waits for the install, and never goes through unchecked.
+    installed:
+      run: 'test -d node_modules || { echo "node_modules is missing: run npm ci first, which installs the tools these checks run."; exit 1; }'
     lint:
       run: npm run lint
     typecheck:
