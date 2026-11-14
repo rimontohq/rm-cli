@@ -9,6 +9,7 @@
     "scripts/osv.mjs",
     "scripts/lint-ops.test.mjs",
     "scripts/git-hooks.test.mjs",
+    "scripts/node-version.test.mjs",
     "scripts/version-check.mjs"
   ],
   // An export that only its own file uses is not dead code, so for now it is not reported. In src/ nineteen exports
