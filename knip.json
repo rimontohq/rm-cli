@@ -4,10 +4,11 @@
   // It finds most entry points itself, from package.json's scripts, lefthook.yml and .github/workflows; what only the
   // CI runs is listed here, as knip does not read .woodpecker/.
   "entry": [
-    // .woodpecker/check.yaml: `node scripts/osv.mjs`, `node --test scripts/lint-ops.test.mjs` and, on a pull request,
+    // .woodpecker/check.yaml: `node scripts/osv.mjs`, `node --test` on the scripts' tests and, on a pull request,
     // `node scripts/version-check.mjs`.
     "scripts/osv.mjs",
     "scripts/lint-ops.test.mjs",
+    "scripts/git-hooks.test.mjs",
     "scripts/version-check.mjs"
   ],
   // An export that only its own file uses is not dead code, so for now it is not reported. In src/ nineteen exports

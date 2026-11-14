@@ -26,7 +26,7 @@
     "api"
   ],
   "scripts": {
-    "prepare": "lefthook install || exit 0",
+    "prepare": "node scripts/git-hooks.mjs",
     "start": "node src/main.ts",
     "build": "node scripts/build.ts",
     "spec": "node scripts/spec.ts",

@@ -22,8 +22,9 @@ steps:
     image: rimonto-ci:local
     commands:
       - npm run check
-      # lint-ops's own tests, on node:test (npm run lint runs the linters).
-      - node --test scripts/lint-ops.test.mjs
+      # The scripts' tests on node:test, the same files in every repository: lint-ops's (npm run lint runs the linters), and
+      # the prepare script's and git's hooks'.
+      - node --test scripts/lint-ops.test.mjs scripts/git-hooks.test.mjs
       - node dist/rimonto.js --version
       - node dist/rimonto.js --help > /dev/null
 
