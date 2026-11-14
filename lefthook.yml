@@ -1,12 +1,17 @@
 # Git's hooks, for everyone who works in this repository: `npm install` or `npm ci` installs them in a checkout, and a worktree
 # runs its checkout's, which start the checkout's lefthook on the worktree's files and this file there (the prepare script,
 # scripts/git-hooks.mjs). Before a commit, the linters on the files in it; before a push, the lint and the types as the CI's
-# check runs them. Skipped in a merge or a rebase, never otherwise: a hook that is wrong is fixed here.
+# check runs them. Skipped in a merge or a rebase, and as a rule never otherwise (LEFTHOOK=0 and --no-verify still would, and
+# the CI's check fails on the same thing): a hook that is wrong is fixed here.
 # `**` matches no folder too, as in a shell: src/**/*.ts takes src/a.ts (lefthook's default would not).
 glob_matcher: doublestar
 # A hook that cannot find lefthook (the copy that installed it is gone, and the working tree has no node_modules) refuses,
 # rather than letting the commit or the push through unchecked.
 assert_lefthook_installed: true
+# Only the prepare script, in the checkout, writes git's hooks. lefthook would write them again whenever it runs on another
+# lefthook.yml than they came from (a worktree's branch), naming the lefthook that runs, which may be the worktree's; so a hook
+# added here reaches git with `npm run prepare` in the checkout.
+no_auto_install: true
 
 pre-commit:
   parallel: true

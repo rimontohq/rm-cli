@@ -1,12 +1,12 @@
 // The prepare script (package.json, ./git-hooks.mjs) and the hooks it installs from lefthook.yml: the same test in every Rimonto
 // repository, on node:test (`node --test scripts/git-hooks.test.mjs`). Each case is a temporary repository holding what they
 // read (package.json, lefthook.yml, scripts/git-hooks.mjs) and, where npm ci would have put it, lefthook in node_modules,
-// copied from this repository's, so that a hook names the copy of the folder that installed it. The prepare script runs as npm
+// linked from one copy of this repository's, so that a hook names the folder that installed it. The prepare script runs as npm
 // runs it: by the shell, in the package's folder, with that folder's node_modules/.bin first on the PATH. Needs lefthook in
-// node_modules (npm ci), as the CI's check has it.
+// node_modules (npm ci): skipped without it on a computer, failed without it in the CI.
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, chmodSync, cpSync, existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync, utimesSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { basename, delimiter, dirname, join } from 'node:path';
@@ -31,7 +31,12 @@ const LEFTHOOK = (() => {
 })();
 const skip = !LEFTHOOK && 'lefthook is not in node_modules: npm ci';
 
-const base = realpathSync(mkdtempSync(join(tmpdir(), 'rimonto-git-hooks-')));
+test('lefthook is in node_modules in the CI, so no case below is skipped there', { skip: !process.env.CI && 'not in the CI' }, () => {
+  assert.ok(LEFTHOOK, 'npm ci installs lefthook, a development dependency');
+});
+
+// Its real name: on Windows TEMP may hold the 8.3 short one (C:\Users\WINDMI~1), which git does not give back.
+const base = realpathSync.native(mkdtempSync(join(tmpdir(), 'rimonto-git-hooks-')));
 after(() => rmSync(base, { recursive: true, force: true }));
 
 // Git and lefthook with no person's settings (a global core.hooksPath would send the hooks elsewhere), none of the variables a
@@ -52,6 +57,8 @@ function gitOk(dir, ...args) {
 }
 /** The file git runs as this hook: in a worktree, the one in its checkout's git folder. */
 const hookOf = (dir, name) => gitOk(dir, 'rev-parse', '--path-format=absolute', '--git-path', `hooks/${name}`);
+/** Whether a hook names this folder's lefthook: lefthook writes the path with / on Windows, its drive's letter in either case. */
+const names = (text, dir) => text.replaceAll('\\', '/').toLowerCase().includes(join(dir, 'node_modules').replaceAll('\\', '/').toLowerCase());
 /** A commit of one new file, as a person makes one: lefthook skips its pre-commit checks when nothing is staged. */
 function commit(dir, message, vars = env) {
   writeFileSync(join(dir, `${message}.txt`), `${message}\n`);
@@ -63,12 +70,40 @@ function commit(dir, message, vars = env) {
 const config = (dir) => JSON.parse(execFileSync(LEFTHOOK.program, ['dump', '--format', 'json'], { cwd: dir, env, encoding: 'utf8' }));
 /** The git hooks lefthook.yml names, such as pre-commit and pre-push. */
 const hooksIn = (dir) => Object.entries(config(dir)).filter(([, hook]) => hook?.commands || hook?.jobs).map(([name]) => name);
+/** A lefthook-local.yml that leaves only the check of node_modules: the others need this repository's scripts and tools, and a
+ * failure of theirs would refuse a commit for another reason. */
+function onlyInstalled(dir) {
+  const lines = Object.entries(config(dir)).flatMap(([name, hook]) => {
+    const others = Object.keys(hook?.commands ?? {}).filter((command) => command !== 'installed');
+    return others.length ? [`${name}:`, '  commands:', ...others.flatMap((command) => [`    ${command}:`, '      skip: true'])] : [];
+  });
+  writeFileSync(join(dir, 'lefthook-local.yml'), `${lines.join('\n')}\n`);
+}
 
+/** A folder's files as hard links to another's, or copies where a link cannot be made. */
+function linkTree(from, to) {
+  mkdirSync(to, { recursive: true });
+  for (const entry of readdirSync(from, { withFileTypes: true })) {
+    if (entry.isDirectory()) linkTree(join(from, entry.name), join(to, entry.name));
+    else {
+      try {
+        linkSync(join(from, entry.name), join(to, entry.name));
+      } catch {
+        cpSync(join(from, entry.name), join(to, entry.name));
+      }
+    }
+  }
+}
+/** One package of lefthook, copied once into the test's folder (its program is 12 MB), for each case to link. */
+function stored(pkg) {
+  const copy = join(base, 'store', basename(pkg));
+  if (!existsSync(copy)) cpSync(pkg, copy, { recursive: true });
+  return copy;
+}
 /** lefthook in the folder's node_modules as npm ci leaves it: its package, its program's, and node_modules/.bin/lefthook. */
 function install(dir) {
   const modules = join(dir, 'node_modules');
-  cpSync(LEFTHOOK.pkg, join(modules, 'lefthook'), { recursive: true });
-  cpSync(LEFTHOOK.platform, join(modules, basename(LEFTHOOK.platform)), { recursive: true });
+  for (const pkg of [LEFTHOOK.pkg, LEFTHOOK.platform]) linkTree(stored(pkg), join(modules, basename(pkg)));
   mkdirSync(join(modules, '.bin'));
   if (process.platform === 'win32') writeFileSync(join(modules, '.bin', 'lefthook.cmd'), '@node "%~dp0\\..\\lefthook\\bin\\index.js" %*\r\n');
   else symlinkSync('../lefthook/bin/index.js', join(modules, '.bin', 'lefthook'));
@@ -111,7 +146,7 @@ test("prepare installs git's hooks in a checkout, naming the checkout's own left
   assert.equal(prepare(dir).status, 0);
   const hooks = hooksIn(dir);
   assert.ok(hooks.length > 0, 'lefthook.yml names hooks');
-  for (const name of hooks) assert.ok(readFileSync(hookOf(dir, name), 'utf8').includes(join(dir, 'node_modules')), `${name} names ${dir}'s lefthook`);
+  for (const name of hooks) assert.ok(names(readFileSync(hookOf(dir, name), 'utf8'), dir), `${name} names ${dir}'s lefthook`);
 });
 
 test("prepare in a worktree, where .git is a file, leaves the checkout's hooks as they are", { skip }, () => {
@@ -126,6 +161,35 @@ test("prepare in a worktree, where .git is a file, leaves the checkout's hooks a
   for (const [name, text] of before) {
     assert.equal(hookOf(tree, name), hookOf(main, name), `the worktree runs the checkout's ${name}`);
     assert.equal(readFileSync(hookOf(main, name), 'utf8'), text, `${name} still names the checkout's lefthook`);
+  }
+});
+
+test("a commit in a worktree on another lefthook.yml leaves the checkout's hooks as they are, whichever lefthook runs it", { skip }, () => {
+  // lefthook writes git's hooks again when it runs on a lefthook.yml other than the one they came from, with the path of the
+  // lefthook that runs, unless lefthook.yml says no_auto_install. A worktree's branch often has another lefthook.yml; here one
+  // more hook. First the checkout's lefthook runs the commit, as the hook names it; then, with the checkout's node_modules
+  // gone, the hook's own search finds the worktree's (git rev-parse --show-toplevel), which would name the worktree.
+  const main = checkout('resync');
+  const before = hooksIn(main).map((name) => [name, readFileSync(hookOf(main, name), 'utf8')]);
+  const tree = join(base, 'resync-tree');
+  gitOk(main, 'worktree', 'add', '-q', tree);
+  install(tree);
+  appendFileSync(join(tree, 'lefthook.yml'), '\ncommit-msg:\n  commands:\n    any:\n      run: "true"\n');
+  onlyInstalled(tree);
+  // lefthook takes its hooks for written from this lefthook.yml when the file's time, to the second, is the one it noted at
+  // the install; a worktree's is written at another time, and a test this fast could fall in the same second.
+  const later = new Date(Date.now() + 60_000);
+  for (const file of ['lefthook.yml', 'lefthook-local.yml']) utimesSync(join(tree, file), later, later);
+  for (const [step, message] of [['the checkout', 'by-the-checkout'], ['the worktree', 'by-the-worktree']]) {
+    if (step === 'the worktree') rmSync(join(main, 'node_modules'), { recursive: true, force: true });
+    const run = commit(tree, message);
+    assert.equal(run.status, 0, `${step}'s lefthook: ${run.stdout}${run.stderr}`);
+    for (const [name, text] of before) {
+      const now = readFileSync(hookOf(main, name), 'utf8');
+      assert.ok(!names(now, tree), `${step}'s lefthook: ${name} does not name the worktree's lefthook`);
+      assert.equal(now, text, `${step}'s lefthook: ${name} is the one the checkout installed`);
+    }
+    assert.equal(existsSync(hookOf(main, 'commit-msg')), false, `${step}'s lefthook: the worktree's lefthook.yml installs no hook`);
   }
 });
 
@@ -144,13 +208,7 @@ test('a commit in a working tree with no node_modules is refused with what to ru
   for (const name of hooksIn(main)) assert.ok(config(main)[name].commands?.installed, `${name} has the check "installed"`);
   const tree = join(base, 'refuse-tree');
   gitOk(main, 'worktree', 'add', '-q', tree);
-  // Only that check: the others need this repository's scripts and tools, and a failure of theirs would refuse the commit for
-  // another reason.
-  const local = Object.entries(config(tree)).flatMap(([name, hook]) => {
-    const others = Object.keys(hook?.commands ?? {}).filter((command) => command !== 'installed');
-    return others.length ? [`${name}:`, '  commands:', ...others.flatMap((command) => [`    ${command}:`, '      skip: true'])] : [];
-  });
-  writeFileSync(join(tree, 'lefthook-local.yml'), `${local.join('\n')}\n`);
+  onlyInstalled(tree);
 
   const refused = commit(tree, 'unchecked');
   assert.notEqual(refused.status, 0, 'the commit is refused');
@@ -169,8 +227,7 @@ test('a hook that cannot find lefthook refuses the commit, never lets it through
   gitOk(dir, 'init', '-q', '-b', 'dev');
   assert.equal(config(dir).assert_lefthook_installed, true, 'lefthook.yml says assert_lefthook_installed');
   const gone = join(base, 'gone-lefthook', basename(LEFTHOOK.program));
-  mkdirSync(dirname(gone));
-  cpSync(LEFTHOOK.program, gone);
+  linkTree(join(stored(LEFTHOOK.platform), 'bin'), dirname(gone));
   execFileSync(gone, ['install'], { cwd: dir, env, stdio: 'ignore' });
   rmSync(dirname(gone), { recursive: true, force: true });
 
