@@ -232,23 +232,104 @@ test("npm ci in a worktree, where lefthook's own postinstall runs before prepare
   assert.ok(before.some(([name]) => names(readFileSync(hookOf(main, name), 'utf8'), tree)), "lefthook's postinstall named the worktree's lefthook, as it does");
   const run = prepare(tree);
   assert.equal(run.status, 0, run.output);
-  assert.match(run.output, /git's hooks name .*'s lefthook again/);
+  assert.match(run.output, /git's hooks named this worktree's lefthook; they name .*'s again/);
   for (const [name, text] of before) assert.equal(readFileSync(hookOf(main, name), 'utf8'), text, `${name} names the checkout's lefthook again`);
 });
 
-test("npm ci in a worktree whose checkout has no lefthook says to run npm ci there", { skip }, () => {
-  const main = fill(join(base, 'uninstalled'), { modules: false });
-  gitOk(main, 'init', '-q', '-b', 'dev');
+/** A checkout with one commit and lefthook.yml, never installed: no npm ci, no prepare. */
+function uninstalledCheckout(name, { init = [] } = {}) {
+  const main = fill(join(base, name), { modules: false });
+  gitOk(main, ...init, 'init', '-q', '-b', 'dev');
   writeFileSync(join(main, '.gitignore'), 'node_modules/\n');
   gitOk(main, 'add', '-A');
   gitOk(main, 'commit', '-q', '-m', 'first');
-  const tree = join(base, 'uninstalled-tree');
+  return main;
+}
+/** A worktree of that checkout, installed: lefthook in its node_modules, as npm ci leaves it. */
+function installedTree(main, name) {
+  const tree = join(base, name);
   gitOk(main, 'worktree', 'add', '-q', tree);
   install(tree);
-  postinstall(tree);
+  return tree;
+}
+
+test('a worktree whose checkout has no lefthook in node_modules: its own lefthook installs the hooks, so commits here are checked', { skip }, () => {
+  // With lefthook's postinstall denied (npm 11.16 and later), nothing else would install them: commits went unchecked.
+  const main = uninstalledCheckout('uninstalled');
+  const tree = installedTree(main, 'uninstalled-tree');
   const run = prepare(tree);
   assert.equal(run.status, 0, run.output);
-  assert.match(run.output, /has no lefthook in node_modules: npm ci there installs them/);
+  assert.match(run.output, /has no lefthook in node_modules, so this worktree's lefthook installed them and checks commits here/);
+  for (const name of hooksIn(tree)) assert.ok(names(readFileSync(hookOf(tree, name), 'utf8'), tree), `${name} is there, naming this worktree's lefthook`);
+  onlyInstalled(tree);
+  const refused = commit(tree, 'checked');
+  assert.equal(refused.status, 0, refused.stdout + refused.stderr);
+  assert.match(refused.stdout + refused.stderr, /installed/, 'lefthook ran its checks');
+});
+
+test('a worktree whose checkout is on a branch with no lefthook.yml: its own lefthook installs them, and says why', { skip }, () => {
+  const main = checkout('no-config');
+  const tree = join(base, 'no-config-tree');
+  gitOk(main, 'worktree', 'add', '-q', tree);
+  install(tree);
+  rmSync(join(main, 'lefthook.yml'));
+  const run = prepare(tree);
+  assert.equal(run.status, 0, run.output);
+  assert.match(run.output, /has no lefthook\.yml \(it is on a branch without one\), so this worktree's lefthook installed them/);
+  assert.equal(existsSync(join(main, 'lefthook.yml')), false, 'the checkout got no blank lefthook.yml');
+});
+
+test("a hook that only the worktree's lefthook.yml has is removed, as it names the worktree's lefthook", { skip }, () => {
+  // The checkout's lefthook installs what its own lefthook.yml has; what lefthook's postinstall installed from the worktree's
+  // (here commit-msg) went on naming the worktree, and would find no lefthook once it is removed.
+  const main = checkout('extra-hook');
+  const tree = join(base, 'extra-hook-tree');
+  gitOk(main, 'worktree', 'add', '-q', tree);
+  install(tree);
+  appendFileSync(join(tree, 'lefthook.yml'), '\ncommit-msg:\n  commands:\n    any:\n      run: "true"\n');
+  assert.equal(postinstall(tree).status, 0);
+  assert.ok(names(readFileSync(hookOf(main, 'commit-msg'), 'utf8'), tree), "lefthook's postinstall installed commit-msg from the worktree");
+  const run = prepare(tree);
+  assert.equal(run.status, 0, run.output);
+  assert.equal(existsSync(hookOf(main, 'commit-msg')), false, 'commit-msg is gone');
+  assert.match(run.output, /removed commit-msg, which only this worktree's lefthook\.yml has/);
+  for (const name of hooksIn(main)) assert.ok(names(readFileSync(hookOf(main, name), 'utf8'), main), `${name} names the checkout's lefthook`);
+});
+
+test('a checkout with no hooks folder yet (a git template with no hooks/): a worktree\'s prepare installs them and does not fail', { skip }, () => {
+  const template = join(base, 'template-without-hooks');
+  mkdirSync(template);
+  const main = uninstalledCheckout('templated', { init: ['-c', `init.templateDir=${template}`] });
+  install(main);
+  assert.equal(existsSync(hookOf(main, 'pre-commit')), false);
+  assert.equal(existsSync(join(main, '.git', 'hooks')), false, 'git made no hooks folder');
+  const tree = installedTree(main, 'templated-tree');
+  const run = prepare(tree);
+  assert.equal(run.status, 0, run.output);
+  assert.match(run.output, /git's hooks were installed again by .*'s lefthook/, 'says what changed, and no more');
+  assert.doesNotMatch(run.output, /named this worktree's/);
+  for (const name of hooksIn(main)) assert.ok(names(readFileSync(hookOf(main, name), 'utf8'), main), `${name} names the checkout's lefthook`);
+});
+
+test('a checkout whose core.hooksPath names a folder not made yet: a worktree\'s prepare says what lefthook said, and does not fail', { skip }, () => {
+  const main = checkout('hooks-path');
+  gitOk(main, 'config', 'core.hooksPath', join(base, 'hooks-path-not-made'));
+  const tree = installedTree(main, 'hooks-path-tree');
+  const run = prepare(tree);
+  assert.equal(run.status, 0, run.output);
+  assert.match(run.output, /hooksPath/i, "lefthook's own refusal is printed");
+});
+
+test("prepare in a checkout uses only that checkout's own lefthook, never one in a folder around it", { skip }, () => {
+  const around = join(base, 'around');
+  mkdirSync(around);
+  install(around);
+  const dir = fill(join(around, 'checkout'), { modules: false });
+  gitOk(dir, 'init', '-q', '-b', 'dev');
+  const run = prepare(dir);
+  assert.equal(run.status, 0);
+  assert.match(run.output, /lefthook is not in node_modules/);
+  assert.equal(existsSync(hookOf(dir, 'pre-commit')), false, "the folder around it installed nothing");
 });
 
 test('prepare run from a git hook, with GIT_DIR naming another repository, works on its own and leaves that one alone', { skip }, (t) => {
