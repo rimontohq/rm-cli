@@ -141,6 +141,21 @@ function postinstall(dir) {
   return spawnSync(process.execPath, ['postinstall.js'], { cwd: join(dir, 'node_modules', 'lefthook'), env: { ...vars, INIT_CWD: dir }, encoding: 'utf8' });
 }
 
+/** A repository as a test may change it by mistake: its commits, config, index and hooks. */
+function state(dir) {
+  const folder = join(dir, '.git');
+  return JSON.stringify([gitIn(env, dir, 'rev-list', '--all').stdout, readFileSync(join(folder, 'config'), 'utf8'), existsSync(join(folder, 'index')) && readFileSync(join(folder, 'index'), 'base64'),
+    readdirSync(join(folder, 'hooks')).filter((name) => !name.endsWith('.sample'))]);
+}
+/** A repository of its own with one commit, for a test to show that nothing reached it. */
+function sentinel(name) {
+  const dir = join(base, name);
+  mkdirSync(dir);
+  gitOk(dir, 'init', '-q', '-b', 'dev');
+  gitOk(dir, 'commit', '-q', '--allow-empty', '-m', 'sentinel');
+  return dir;
+}
+
 test('package.json denies lefthook\'s own postinstall (allowScripts), which npm 11 honours', () => {
   // It installs the hooks wherever npm starts, a worktree too (RIM-66); the prepare script installs them, from the checkout.
   assert.equal(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).allowScripts?.lefthook, false);
@@ -236,6 +251,22 @@ test("npm ci in a worktree whose checkout has no lefthook says to run npm ci the
   assert.match(run.output, /has no lefthook in node_modules: npm ci there installs them/);
 });
 
+test('prepare run from a git hook, with GIT_DIR naming another repository, works on its own and leaves that one alone', { skip }, (t) => {
+  // npm started inside a git hook carries the hook's GIT_DIR (RIM-67).
+  const main = checkout('from-a-hook');
+  const before = hooksIn(main).map((name) => [name, readFileSync(hookOf(main, name), 'utf8')]);
+  const tree = join(base, 'from-a-hook-tree');
+  gitOk(main, 'worktree', 'add', '-q', tree);
+  install(tree);
+  postinstall(tree);
+  const other = sentinel('from-a-hook-other');
+  const was = state(other);
+  t.after(() => assert.equal(state(other), was, 'the other repository is as it was'));
+  assert.equal(prepare(tree, { GIT_DIR: join(other, '.git'), GIT_WORK_TREE: other }).status, 0);
+  for (const [name, text] of before) assert.equal(readFileSync(hookOf(main, name), 'utf8'), text, `${name} names the checkout's lefthook`);
+  assert.equal(state(other), was);
+});
+
 test('prepare does not fail an install in a checkout where lefthook cannot run, and says so', () => {
   const dir = fill(join(base, 'no-lefthook'), { modules: false });
   gitOk(dir, 'init', '-q', '-b', 'dev');
@@ -288,4 +319,20 @@ test('a hook that cannot find lefthook refuses the commit, never lets it through
   const refused = commit(dir, 'unchecked', vars);
   assert.notEqual(refused.status, 0, `the commit is refused: ${refused.stdout}${refused.stderr}`);
   assert.equal(git(dir, 'rev-list', '--all').stdout, '', 'nothing was committed');
+});
+
+
+test('run as a pre-push from a worktree runs it, with GIT_DIR naming another repository, these tests leave that one alone', { skip: skip || (process.env.RIMONTO_GIT_HOOKS_INNER && 'this run is the one below') }, () => {
+  // git runs a hook in a worktree with GIT_DIR and GIT_WORK_TREE set, and a test runner passes them on: every git above
+  // runs in a repository of its own, and must not follow them into the real one (RIM-67: in rm-infra a push committed
+  // fixture commits and set core.bare=true there).
+  const other = sentinel('pushed');
+  const was = state(other);
+  // Without NODE_TEST_CONTEXT, which this runner sets, so the run below reports as a run of its own, in text.
+  const { NODE_TEST_CONTEXT: _context, ...outer } = process.env;
+  const run = spawnSync(process.execPath, ['--test', '--test-isolation=none', fileURLToPath(import.meta.url)], {
+    cwd: ROOT, encoding: 'utf8', timeout: 300_000, env: { ...outer, GIT_DIR: join(other, '.git'), GIT_WORK_TREE: other, RIMONTO_GIT_HOOKS_INNER: '1' },
+  });
+  assert.equal(run.status, 0, `the tests pass that way too:\n${run.stdout.slice(-3000)}${run.stderr.slice(-2000)}`);
+  assert.equal(state(other), was, 'nothing reached the repository GIT_DIR names');
 });
