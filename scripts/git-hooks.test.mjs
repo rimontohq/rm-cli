@@ -118,8 +118,8 @@ function fill(dir, { modules = true } = {}) {
 }
 
 /** The prepare script as npm runs it: by the shell (sh, or cmd on Windows), with the folder's node_modules/.bin first on the PATH. */
-function prepare(dir) {
-  const run = spawnSync(PREPARE, { cwd: dir, shell: true, encoding: 'utf8', env: { ...env, [PATH]: join(dir, 'node_modules', '.bin') + delimiter + env[PATH] } });
+function prepare(dir, extra = {}) {
+  const run = spawnSync(PREPARE, { cwd: dir, shell: true, encoding: 'utf8', env: { ...env, ...extra, [PATH]: join(dir, 'node_modules', '.bin') + delimiter + env[PATH] } });
   return { status: run.status, output: run.stdout + run.stderr };
 }
 
@@ -133,6 +133,18 @@ function checkout(name) {
   assert.equal(prepare(dir).status, 0);
   return dir;
 }
+
+/** lefthook's own npm postinstall, as npm runs it for the folder: in lefthook's package, with INIT_CWD where npm started, and
+ * not as in a CI, where it installs nothing. */
+function postinstall(dir) {
+  const { CI: _ci, ...vars } = env;
+  return spawnSync(process.execPath, ['postinstall.js'], { cwd: join(dir, 'node_modules', 'lefthook'), env: { ...vars, INIT_CWD: dir }, encoding: 'utf8' });
+}
+
+test('package.json denies lefthook\'s own postinstall (allowScripts), which npm 11 honours', () => {
+  // It installs the hooks wherever npm starts, a worktree too (RIM-66); the prepare script installs them, from the checkout.
+  assert.equal(JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')).allowScripts?.lefthook, false);
+});
 
 test("prepare says nothing in a folder without .git, as the server's deploy has it, and does not fail", { skip }, () => {
   const dir = fill(join(base, 'deploy'));
@@ -191,6 +203,37 @@ test("a commit in a worktree on another lefthook.yml leaves the checkout's hooks
     }
     assert.equal(existsSync(hookOf(main, 'commit-msg')), false, `${step}'s lefthook: the worktree's lefthook.yml installs no hook`);
   }
+});
+
+test("npm ci in a worktree, where lefthook's own postinstall runs before prepare, leaves the hooks naming the checkout's lefthook", { skip }, () => {
+  // npm runs the dependencies' install scripts, then the package's prepare. An npm that does not read allowScripts runs
+  // lefthook's postinstall, which installs the hooks from the worktree (RIM-66).
+  const main = checkout('postinstall');
+  const before = hooksIn(main).map((name) => [name, readFileSync(hookOf(main, name), 'utf8')]);
+  const tree = join(base, 'postinstall-tree');
+  gitOk(main, 'worktree', 'add', '-q', tree);
+  install(tree);
+  assert.equal(postinstall(tree).status, 0);
+  assert.ok(before.some(([name]) => names(readFileSync(hookOf(main, name), 'utf8'), tree)), "lefthook's postinstall named the worktree's lefthook, as it does");
+  const run = prepare(tree);
+  assert.equal(run.status, 0, run.output);
+  assert.match(run.output, /git's hooks name .*'s lefthook again/);
+  for (const [name, text] of before) assert.equal(readFileSync(hookOf(main, name), 'utf8'), text, `${name} names the checkout's lefthook again`);
+});
+
+test("npm ci in a worktree whose checkout has no lefthook says to run npm ci there", { skip }, () => {
+  const main = fill(join(base, 'uninstalled'), { modules: false });
+  gitOk(main, 'init', '-q', '-b', 'dev');
+  writeFileSync(join(main, '.gitignore'), 'node_modules/\n');
+  gitOk(main, 'add', '-A');
+  gitOk(main, 'commit', '-q', '-m', 'first');
+  const tree = join(base, 'uninstalled-tree');
+  gitOk(main, 'worktree', 'add', '-q', tree);
+  install(tree);
+  postinstall(tree);
+  const run = prepare(tree);
+  assert.equal(run.status, 0, run.output);
+  assert.match(run.output, /has no lefthook in node_modules: npm ci there installs them/);
 });
 
 test('prepare does not fail an install in a checkout where lefthook cannot run, and says so', () => {
