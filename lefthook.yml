@@ -21,7 +21,7 @@ pre-commit:
   commands:
     # Without node_modules there is no linter to run: the commit waits for the install, and never goes through unchecked.
     installed:
-      run: 'test -d node_modules || { echo "node_modules is missing: run npm ci first, which installs the tools these checks run."; exit 1; }'
+      run: "test -d node_modules || { echo 'node_modules is missing: run npm ci first, which installs the tools these checks run.'; exit 1; }"
     oxlint:
       glob: "{src,test,scripts}/**/*.{ts,js,mjs}"
       run: npx oxlint -c .oxlintrc.json --max-warnings 0 {staged_files}
@@ -38,7 +38,7 @@ pre-push:
   commands:
     # Without node_modules there is no linter to run: the push waits for the install, and never goes through unchecked.
     installed:
-      run: 'test -d node_modules || { echo "node_modules is missing: run npm ci first, which installs the tools these checks run."; exit 1; }'
+      run: "test -d node_modules || { echo 'node_modules is missing: run npm ci first, which installs the tools these checks run.'; exit 1; }"
     lint:
       run: npm run lint
     typecheck:
