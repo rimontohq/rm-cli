@@ -357,6 +357,14 @@ test('prepare does not fail an install in a checkout where lefthook cannot run, 
   assert.equal(existsSync(hookOf(dir, 'pre-commit')), false);
 });
 
+test("no hook's command holds a double quote: on Windows lefthook gives sh the command on one command line, where a double quote ends it", { skip }, () => {
+  // sh then runs only what came before that quote: `{ echo "…"; exit 1; }` became a syntax error, and every commit stopped.
+  for (const [name, hook] of Object.entries(config(ROOT))) {
+    const commands = [...Object.entries(hook?.commands ?? {}), ...(hook?.jobs ?? []).map((job, i) => [job.name ?? `job ${i + 1}`, job])];
+    for (const [command, { run }] of commands) assert.ok(!run?.includes('"'), `${name}'s ${command}: ${run}`);
+  }
+});
+
 test('a commit in a working tree with no node_modules is refused with what to run, and goes through once it is installed', { skip }, () => {
   // A worktree before its npm ci: the checkout's hook starts the checkout's lefthook, on the worktree's lefthook.yml.
   const main = checkout('refuse');
