@@ -1,0 +1,124 @@
+# The Windows check: this repository's lint, types, tests and build on GitHub's Windows runner, every Monday and by hand
+# (`gh workflow run windows.yml --repo rimontohq/rm-cli`), what a developer on Windows runs. Every other Rimonto
+# repository calls one definition of it, in rimontohq/rm-infra (.github/workflows/windows-check.yml, and ops/ci/README.md
+# there, "The Windows check"); GitHub lets a public repository call no private repository's workflow, so here the same
+# steps are written out, and a change to them there is made here too.
+#
+# - The Node of .nvmrc, npm's default script shell (cmd), and CI unset, as on a developer's computer: lint:ops then skips
+#   the linters GitHub's runner lacks (woodpecker-cli) with a line, where with CI set it fails on them. Woodpecker's
+#   check runs them, and stays the proof of a pull request.
+# - Each step runs after a failed one too, so one run shows every step that fails on Windows; each has a bound, so a
+#   step that hangs fails rather than holding the runner for hours.
+# - A weekly run that fails opens the issue "[windows] The weekly Windows check failed", assigned so that GitHub emails,
+#   or comments on the one already open; the next weekly run that passes closes it. A run by hand reports so only when
+#   asked (`-f report=true`).
+name: windows
+
+on:
+  schedule:
+    - cron: '20 3 * * 1' # Mondays, 03:20 UTC: each repository at its own minute
+  workflow_dispatch:
+    inputs:
+      report:
+        description: Report the result in an issue, as the weekly run does
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  windows:
+    name: Windows
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: cmd
+    env:
+      CI: ''
+    steps:
+      # Git as the Rimonto workspace's `npm run doctor` asks of a Windows computer: LF in the working tree, where Git
+      # for Windows' default, as on GitHub's runner, writes CRLF (core.autocrlf true) into a repository without
+      # .gitattributes, as this one, and into the git repositories the tests make; and long paths.
+      - id: git
+        name: Git as on a developer's computer
+        run: |
+          git config --global core.autocrlf input
+          git config --global core.longpaths true
+
+      - id: checkout
+        uses: actions/checkout@v7
+
+      - id: node
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - id: install
+        name: npm ci
+        timeout-minutes: 15
+        run: npm ci --no-audit --no-fund
+
+      - id: lint
+        name: Lint
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        timeout-minutes: 15
+        run: npm run lint
+
+      - id: types
+        name: Types
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        timeout-minutes: 15
+        run: npm run typecheck
+
+      - id: test
+        name: Unit tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        timeout-minutes: 15
+        run: npm test
+
+      - id: build
+        name: Build
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        timeout-minutes: 15
+        run: npm run build
+
+      - name: Report
+        if: ${{ !cancelled() && (github.event_name == 'schedule' || inputs.report) }}
+        uses: actions/github-script@v9
+        env:
+          STEPS: ${{ toJSON(steps) }}
+        with:
+          script: |
+            const steps = JSON.parse(process.env.STEPS);
+            const names = { git: 'Git', checkout: 'Check out', node: 'Node', install: 'npm ci', lint: 'Lint', types: 'Types', test: 'Unit tests', build: 'Build' };
+            const commands = { install: 'npm ci', lint: 'npm run lint', types: 'npm run typecheck', test: 'npm test', build: 'npm run build' };
+            const failed = Object.keys(names).filter((id) => steps[id]?.outcome === 'failure')
+              .map((id) => (commands[id] ? `${names[id]} (\`${commands[id]}\`)` : names[id]));
+            const { owner, repo } = context.repo;
+            const run = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+            const issues = await github.paginate(github.rest.issues.listForRepo, { owner, repo, state: 'open', per_page: 100 });
+            const open = issues.find((issue) => !issue.pull_request && issue.title.startsWith('[windows]') && issue.user?.login === 'github-actions[bot]');
+            if (failed.length > 0) {
+              const body = [
+                `The Windows check failed on \`${process.env.GITHUB_REF_NAME}\` at ${context.sha.slice(0, 7)}: ${failed.join(', ')}.`,
+                '',
+                `The run: ${run}`,
+                '',
+                'It runs this repository\'s lint, types, unit tests and build on GitHub\'s Windows runner (.github/workflows/windows.yml).',
+                `Once it is fixed, \`gh workflow run windows.yml --repo ${owner}/${repo} -f report=true\` checks it again and closes this issue; otherwise the next weekly run does.`,
+              ].join('\n');
+              if (open) {
+                await github.rest.issues.createComment({ owner, repo, issue_number: open.number, body });
+                core.notice(`Commented on #${open.number}.`);
+              } else {
+                const issue = await github.rest.issues.create({ owner, repo, title: '[windows] The weekly Windows check failed', body, assignees: ['aleksandrmobilesentrix'] });
+                core.notice(`Opened #${issue.data.number}.`);
+              }
+            } else if (open) {
+              await github.rest.issues.createComment({ owner, repo, issue_number: open.number, body: `The Windows check works again: ${run}` });
+              await github.rest.issues.update({ owner, repo, issue_number: open.number, state: 'closed', state_reason: 'completed' });
+              core.notice(`Closed #${open.number}.`);
+            }

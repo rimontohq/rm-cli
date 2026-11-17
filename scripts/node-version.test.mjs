@@ -1,7 +1,8 @@
 // The Node this repository runs on is the CI's: the same test in every Rimonto repository, on node:test
 // (`node --test scripts/node-version.test.mjs`). .nvmrc, which nvm, fnm and the workspace's doctor read on a computer, names the
 // Node of the CI's runner image (rm-infra: ops/ci/runner.Dockerfile), which runs this test in the check; and every Node a file
-// of the repository pins (a Dockerfile's FROM node:, a pipeline's image: node: or node-version:) is that one too. Node moves to
+// of the repository pins (a Dockerfile's FROM node:, a pipeline's image: node: or node-version:) is that one too, and a GitHub
+// workflow that reads its Node from a file (node-version-file:, as the Windows check does) reads .nvmrc. Node moves to
 // a new major everywhere at once, never one file alone (skill renovate, "Node"). On a computer, a failure of the first test
 // means that computer runs another Node than the repository's: `nvm use`. A file that pins another Node on purpose says so,
 // with why, in a comment on the line above the pin (or on its own line, in YAML): `# Another Node on purpose: <why>`.
@@ -26,7 +27,7 @@ test(".nvmrc names the Node these tests run on: in the check, the CI's runner im
 const ON_PURPOSE = /#\s*Another Node on purpose:\s*\S/i;
 
 /** The Nodes a file pins, as majors, but those marked as another on purpose: a Dockerfile's FROM node:, and YAML's image: node:
- * and node-version:. */
+ * and node-version:; and a file YAML's node-version-file: reads, by its name, unless it is .nvmrc, whose Node is this one. */
 function pinsIn(name, text) {
   const pattern = /Dockerfile/.test(name)
     ? /^FROM\s+(?:--platform=\S+\s+)?(?:docker\.io\/)?(?:library\/)?node:v?(\d+)/g
@@ -35,7 +36,11 @@ function pinsIn(name, text) {
   const lines = text.split('\n');
   // The marker on the pin's own line, or a comment line of its own right above it.
   const marked = (i) => ON_PURPOSE.test(lines[i]) || (/^\s*#/.test(lines[i - 1] ?? '') && ON_PURPOSE.test(lines[i - 1]));
-  return lines.flatMap((line, i) => (marked(i) ? [] : [...line.matchAll(pattern)].map(([, major]) => major)));
+  const fromFile = (line) => {
+    const file = /\.ya?ml$/.test(name) ? /node-version-file:\s*["']?([^"'\s#]+)/.exec(line)?.[1] : undefined;
+    return file && file.replace(/^\.\//, '') !== '.nvmrc' ? [file] : [];
+  };
+  return lines.flatMap((line, i) => (marked(i) ? [] : [...line.matchAll(pattern)].map(([, major]) => major).concat(fromFile(line))));
 }
 
 /** Each Node a tracked file pins, as [file, major]. */
@@ -57,6 +62,15 @@ test('a pin of another Node is found, unless a comment says it is on purpose, wi
   assert.deepEqual(pinsIn('README.md', 'FROM node:20\nnode-version: 20'), [], 'only Dockerfiles and YAML');
 });
 
+test("a GitHub workflow's node-version-file: is found unless it reads .nvmrc, so the Windows check runs this Node", () => {
+  const workflow = '        with:\n          node-version-file: .nvmrc\n          node-version-file: "./.nvmrc"\n          node-version-file: package.json\n';
+  assert.deepEqual(pinsIn('windows-check.yml', workflow), ['package.json']);
+  assert.deepEqual(pinsIn('Dockerfile', 'node-version-file: package.json'), [], 'only YAML');
+});
+
+/** A pin as a failure names it: a major, or the file a workflow reads its Node from. */
+const named = (major) => (/^\d+$/.test(major) ? `Node ${major}` : `Node from ${major}`);
+
 test('every Node a file of the repository pins is the Node of .nvmrc', () => {
-  assert.deepEqual(pins().filter(([, major]) => major !== NVMRC).map(([file, major]) => `${file}: Node ${major}`), []);
+  assert.deepEqual(pins().filter(([, major]) => major !== NVMRC).map(([file, major]) => `${file}: ${named(major)}`), []);
 });
