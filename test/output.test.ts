@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import { formatMoney, formatScalar, formatTime, pickColumns, renderHuman, renderJson, renderRecord, renderTable } from '../src/output.ts';
 
@@ -10,6 +11,17 @@ describe('money and times', () => {
     expect(formatMoney(500, 'JPY', 'en-US')).toBe('500 JPY');
     expect(formatMoney(-250, 'GBP', 'en-US')).toBe('-2.50 GBP');
     expect(formatMoney(2176, undefined, 'en-US')).toBe('21.76');
+  });
+
+  it('shows money the same on every computer, whatever its regional format', () => {
+    // Node takes its default number format from the computer: LANG on Linux and macOS, the regional settings on Windows. A
+    // German or a Russian one has a decimal comma.
+    const output = new URL('../src/output.ts', import.meta.url).href;
+    const script = `import { formatMoney } from ${JSON.stringify(output)}; process.stdout.write([formatMoney(2000, 'USD'), formatMoney(123456, 'EUR'), formatMoney(2176)].join(' | '));`;
+    for (const locale of ['de_DE.UTF-8', 'ru_RU.UTF-8']) {
+      const r = spawnSync(process.execPath, ['--input-type=module', '-e', script], { env: { ...process.env, LANG: locale, LC_ALL: locale }, encoding: 'utf8' });
+      expect(r.stdout, `${locale}: ${r.stderr}`).toBe('20.00 USD | 1,234.56 EUR | 21.76');
+    }
   });
 
   it('shows ISO times in the local time zone', () => {

@@ -1,6 +1,7 @@
 // What a command prints. JSON when the output is a pipe or a file (or --json): the API's answer as it came.
 // For people (a terminal, or --human): a list as a table, one record as `key: value` lines; `*_minor` money as a
-// decimal with the record's currency, times in local time, yes/no for booleans, `-` for nothing.
+// decimal with the record's currency (`1,234.56 USD` on every computer), times in local time, yes/no for booleans, `-` for
+// nothing.
 
 import type { ListInfo } from './types.ts';
 
@@ -242,8 +243,12 @@ export function formatScalar(v: unknown, key: string, currency: string | undefin
   return typeof v === 'string' ? v : JSON.stringify(v) ?? '';
 }
 
-/** 2176 → `21.76 USD`; the currency decides the decimals (JPY has none). Without one: `21.76`. */
-export function formatMoney(minor: number, currency?: string, locale?: string): string {
+/**
+ * 2176 → `21.76 USD`; the currency decides the decimals (JPY has none). Without one: `21.76`. The same on every computer,
+ * as the times' form is: with the computer's regional format a German or a Russian one printed `21,76 USD`, and a table that
+ * changes with the settings breaks the next grep, a script and an agent reading it.
+ */
+export function formatMoney(minor: number, currency?: string, locale = 'en-US'): string {
   let digits = 2;
   if (currency) {
     try {

@@ -215,7 +215,7 @@ describe('rimonto api', () => {
 });
 
 describe('login, logout, auth status', () => {
-  it('checks a key from stdin with GET /whoami and keeps it in a 0600 file', async () => {
+  it('checks a key from stdin with GET /whoami and keeps it in the config file', async () => {
     const r = await cli(['login', '--with-key', '--human'], { stdin: `${KEY}\n`, handler: () => json(200, caller) });
     expect(r.code).toBe(0);
     expect(r.requests[0]!.headers.authorization).toBe(`Bearer ${KEY}`);
@@ -224,12 +224,19 @@ describe('login, logout, auth status', () => {
     expect(r.stdout).toContain('Role      staff, Front desk');
     expect(r.stdout).not.toContain(KEY);
     const path = join(r.home, 'config', 'rimonto', 'config.json');
-    expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(JSON.parse(readFileSync(path, 'utf8'))).toEqual({ profiles: { default: { api_key: KEY } } });
 
-    expect(r.stdout).toContain('Saved in ~/config/rimonto/config.json.');
+    expect(r.stdout).toContain(`Saved in ${join('~', 'config', 'rimonto', 'config.json')}.`);
     const who = await cli(['whoami'], { home: r.home, handler: () => json(200, caller) });
     expect(who.requests[0]!.headers.authorization).toBe(`Bearer ${KEY}`);
+  });
+
+  // Windows has no such modes (Node reports 0666 for every file): there the file is private by its folder, in the user's
+  // own profile.
+  it.skipIf(process.platform === 'win32')('keeps the key in a file only its owner can read (0600)', async () => {
+    const r = await cli(['login', '--with-key'], { stdin: KEY, handler: () => json(200, caller) });
+    expect(r.code).toBe(0);
+    expect(statSync(join(r.home, 'config', 'rimonto', 'config.json')).mode & 0o777).toBe(0o600);
   });
 
   it('asks for the key in a terminal, then says what it acts as without repeating the address', async () => {
