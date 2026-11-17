@@ -1,0 +1,30 @@
+# The Windows check: this repository's lint, types, tests and build on GitHub's Windows runner, every Monday and by hand
+# (`gh workflow run windows.yml --repo rimontohq/rm-cli`). The steps, and the issue a failed weekly run opens, are
+# rimontohq/rm-infra's .github/workflows/windows-check.yml, which every Rimonto repository calls.
+name: windows
+
+on:
+  push:
+    branches: [inf-57-windows-check]
+  schedule:
+    - cron: '20 3 * * 1' # Mondays, 03:20 UTC: each repository at its own minute
+  workflow_dispatch:
+    inputs:
+      report:
+        description: Report the result in an issue, as the weekly run does
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    uses: rimontohq/rm-infra/.github/workflows/windows-check.yml@inf-57-windows-check
+    with:
+      lint: npm run lint
+      types: npm run typecheck
+      test: npm test
+      build: npm run build
+      report: ${{ inputs.report == true }}
