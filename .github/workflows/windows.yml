@@ -41,6 +41,15 @@ jobs:
     env:
       CI: ''
     steps:
+      # Git as the workspace's `npm run doctor` asks of a Windows computer (its README, "What this computer needs"): LF in the
+      # working tree, where Git for Windows' default, as on GitHub's runner, writes CRLF (core.autocrlf true) into the
+      # repositories without .gitattributes and into the git repositories the tests make; and long paths.
+      - id: git
+        name: Git as on a developer's computer
+        run: |
+          git config --global core.autocrlf input
+          git config --global core.longpaths true
+
       - id: checkout
         uses: actions/checkout@v7
 
@@ -86,7 +95,7 @@ jobs:
         with:
           script: |
             const steps = JSON.parse(process.env.STEPS);
-            const names = { checkout: 'Check out', node: 'Node', install: 'npm ci', lint: 'Lint', types: 'Types', test: 'Unit tests', build: 'Build' };
+            const names = { git: 'Git', checkout: 'Check out', node: 'Node', install: 'npm ci', lint: 'Lint', types: 'Types', test: 'Unit tests', build: 'Build' };
             const commands = { install: 'npm ci', lint: 'npm run lint', types: 'npm run typecheck', test: 'npm test', build: 'npm run build' };
             const failed = Object.keys(names).filter((id) => steps[id]?.outcome === 'failure')
               .map((id) => (commands[id] ? `${names[id]} (\`${commands[id]}\`)` : names[id]));
