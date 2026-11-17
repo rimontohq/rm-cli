@@ -1,22 +1,20 @@
 # The Windows check: this repository's lint, types, tests and build on GitHub's Windows runner, every Monday and by hand
-# (`gh workflow run windows.yml --repo rimontohq/rm-cli`), what a developer on Windows runs. Every other Rimonto repository
-# calls one definition of it, in rimontohq/rm-infra (.github/workflows/windows-check.yml, and ops/ci/README.md there, "The
-# Windows check"); GitHub lets a public repository call no private repository's workflow, so here the same steps are written
-# out, and a change to them there is made here too.
+# (`gh workflow run windows.yml --repo rimontohq/rm-cli`), what a developer on Windows runs. Every other Rimonto
+# repository calls one definition of it, in rimontohq/rm-infra (.github/workflows/windows-check.yml, and ops/ci/README.md
+# there, "The Windows check"); GitHub lets a public repository call no private repository's workflow, so here the same
+# steps are written out, and a change to them there is made here too.
 #
 # - The Node of .nvmrc, npm's default script shell (cmd), and CI unset, as on a developer's computer: lint:ops then skips
-#   the linters GitHub's runner lacks (woodpecker-cli) with a line, where with CI set it fails on them. Woodpecker's check
-#   runs them, and stays the proof of a pull request.
-# - Each step runs after a failed one too, so one run shows every step that fails on Windows; each has a bound, so a step
-#   that hangs fails rather than holding the runner for hours.
-# - A weekly run that fails opens the issue "[windows] The weekly Windows check failed", assigned so that GitHub emails, or
-#   comments on the one already open; the next weekly run that passes closes it. A run by hand reports so only when asked
-#   (`-f report=true`).
+#   the linters GitHub's runner lacks (woodpecker-cli) with a line, where with CI set it fails on them. Woodpecker's
+#   check runs them, and stays the proof of a pull request.
+# - Each step runs after a failed one too, so one run shows every step that fails on Windows; each has a bound, so a
+#   step that hangs fails rather than holding the runner for hours.
+# - A weekly run that fails opens the issue "[windows] The weekly Windows check failed", assigned so that GitHub emails,
+#   or comments on the one already open; the next weekly run that passes closes it. A run by hand reports so only when
+#   asked (`-f report=true`).
 name: windows
 
 on:
-  push:
-    branches: [inf-57-windows-check]
   schedule:
     - cron: '20 3 * * 1' # Mondays, 03:20 UTC: each repository at its own minute
   workflow_dispatch:
@@ -41,9 +39,9 @@ jobs:
     env:
       CI: ''
     steps:
-      # Git as the workspace's `npm run doctor` asks of a Windows computer (its README, "What this computer needs"): LF in the
-      # working tree, where Git for Windows' default, as on GitHub's runner, writes CRLF (core.autocrlf true) into the
-      # repositories without .gitattributes and into the git repositories the tests make; and long paths.
+      # Git as the Rimonto workspace's `npm run doctor` asks of a Windows computer: LF in the working tree, where Git
+      # for Windows' default, as on GitHub's runner, writes CRLF (core.autocrlf true) into a repository without
+      # .gitattributes, as this one, and into the git repositories the tests make; and long paths.
       - id: git
         name: Git as on a developer's computer
         run: |
