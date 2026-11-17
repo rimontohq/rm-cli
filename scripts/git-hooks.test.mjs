@@ -100,13 +100,92 @@ function stored(pkg) {
   if (!existsSync(copy)) cpSync(pkg, copy, { recursive: true });
   return copy;
 }
-/** lefthook in the folder's node_modules as npm ci leaves it: its package, its program's, and node_modules/.bin/lefthook. */
+/** node_modules/.bin/lefthook as npm writes it on Windows, where it makes no link: npm's cmd-shim (its lib/index.js, cmd-shim 8
+ * in npm 11), for a bin whose first line is `#!/usr/bin/env node`, writes an sh script, which git's hooks run in Git Bash and
+ * a lefthook.yml's `lefthook:` command names, a .cmd for cmd and a .ps1 for PowerShell, each starting node on the package's
+ * bin/index.js, and makes each 0o755. By file ending. */
+const WINDOWS_SHIMS = {
+  '': [
+    '#!/bin/sh',
+    'basedir=$(dirname "$(echo "$0" | sed -e \'s,\\\\,/,g\')")',
+    '',
+    'case `uname` in',
+    '    *CYGWIN*|*MINGW*|*MSYS*)',
+    '        if command -v cygpath > /dev/null 2>&1; then',
+    '            basedir=`cygpath -w "$basedir"`',
+    '        fi',
+    '    ;;',
+    'esac',
+    '',
+    'if [ -x "$basedir/node" ]; then',
+    '  exec "$basedir/node"  "$basedir/../lefthook/bin/index.js" "$@"',
+    'else ',
+    '  exec node  "$basedir/../lefthook/bin/index.js" "$@"',
+    'fi',
+    '',
+  ].join('\n'),
+  '.cmd': [
+    '@ECHO off',
+    'GOTO start',
+    ':find_dp0',
+    'SET dp0=%~dp0',
+    'EXIT /b',
+    ':start',
+    'SETLOCAL',
+    'CALL :find_dp0',
+    '',
+    'IF EXIST "%dp0%\\node.exe" (',
+    '  SET "_prog=%dp0%\\node.exe"',
+    ') ELSE (',
+    '  SET "_prog=node"',
+    '  SET PATHEXT=%PATHEXT:;.JS;=;%',
+    ')',
+    '',
+    'endLocal & goto #_undefined_# 2>NUL || title %COMSPEC% & "%_prog%"  "%dp0%\\..\\lefthook\\bin\\index.js" %*',
+    '',
+  ].join('\r\n'),
+  '.ps1': [
+    '#!/usr/bin/env pwsh',
+    '$basedir=Split-Path $MyInvocation.MyCommand.Definition -Parent',
+    '',
+    '$exe=""',
+    'if ($PSVersionTable.PSVersion -lt "6.0" -or $IsWindows) {',
+    '  # Fix case when both the Windows and Linux builds of Node',
+    '  # are installed in the same directory',
+    '  $exe=".exe"',
+    '}',
+    '$ret=0',
+    'if (Test-Path "$basedir/node$exe") {',
+    '  # Support pipeline input',
+    '  if ($MyInvocation.ExpectingInput) {',
+    '    $input | & "$basedir/node$exe"  "$basedir/../lefthook/bin/index.js" $args',
+    '  } else {',
+    '    & "$basedir/node$exe"  "$basedir/../lefthook/bin/index.js" $args',
+    '  }',
+    '  $ret=$LASTEXITCODE',
+    '} else {',
+    '  # Support pipeline input',
+    '  if ($MyInvocation.ExpectingInput) {',
+    '    $input | & "node$exe"  "$basedir/../lefthook/bin/index.js" $args',
+    '  } else {',
+    '    & "node$exe"  "$basedir/../lefthook/bin/index.js" $args',
+    '  }',
+    '  $ret=$LASTEXITCODE',
+    '}',
+    'exit $ret',
+    '',
+  ].join('\n'),
+};
+/** lefthook in the folder's node_modules as npm ci leaves it: its package, its program's, and node_modules/.bin/lefthook (a
+ * link elsewhere, cmd-shim's three files on Windows). */
 function install(dir) {
   const modules = join(dir, 'node_modules');
   for (const pkg of [LEFTHOOK.pkg, LEFTHOOK.platform]) linkTree(stored(pkg), join(modules, basename(pkg)));
   mkdirSync(join(modules, '.bin'));
-  if (process.platform === 'win32') writeFileSync(join(modules, '.bin', 'lefthook.cmd'), '@node "%~dp0\\..\\lefthook\\bin\\index.js" %*\r\n');
-  else symlinkSync('../lefthook/bin/index.js', join(modules, '.bin', 'lefthook'));
+  if (process.platform === 'win32') {
+    // With cmd-shim's mode too, which Windows does not read: Git Bash runs a file that starts with #! as it is.
+    for (const [ending, text] of Object.entries(WINDOWS_SHIMS)) writeFileSync(join(modules, '.bin', `lefthook${ending}`), text, { mode: 0o755 });
+  } else symlinkSync('../lefthook/bin/index.js', join(modules, '.bin', 'lefthook'));
 }
 
 /** A folder with what the prepare script and the hooks read, and lefthook in node_modules unless told not to. */
