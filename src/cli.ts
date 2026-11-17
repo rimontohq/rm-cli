@@ -223,7 +223,7 @@ export function openSession(io: Io, table: CommandTable, g: GlobalOptions): Sess
     io.stderr.write(`${s}\n`);
   };
   const path = configPath(io.env, io.platform, io.homedir);
-  const config = readConfig(path, err);
+  const config = readConfig(path, err, io.platform);
   const ctx = resolveContext(g, io.env, config);
   if (ctx.apiUrl.startsWith('http://') && !/^http:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|\/|$)/.test(ctx.apiUrl)) {
     err(`warning: ${ctx.apiUrl} is not https: the key travels unencrypted`);

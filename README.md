@@ -68,6 +68,9 @@ stores. It keeps the key in a config file only you can read:
 | Linux, macOS | `$XDG_CONFIG_HOME/rimonto/config.json`, else `~/.config/rimonto/config.json` |
 | Windows | `%APPDATA%\rimonto\config.json` |
 
+On Linux and macOS the file has mode 0600, in a folder with mode 0700. Windows has no such modes: there the file is
+private because it is in your own profile folder, which other users of the computer cannot open.
+
 In a script, pass the key on stdin, or set `RIMONTO_API_KEY` and skip `login`:
 
 ```sh
@@ -139,8 +142,8 @@ The CLI checks the required fields before it sends anything.
 ## Output and scripting
 
 In a terminal, a list prints as a table and a single record as `key: value` lines. Money shows as a decimal with its
-currency (`25.00 USD`), times in your time zone. When the output goes to a pipe or a file, the CLI prints the API's
-JSON as it came, so you can use `jq`:
+currency, the same on every computer whatever its regional format (`1,234.56 USD`), times in your time zone. When the
+output goes to a pipe or a file, the CLI prints the API's JSON as it came, so you can use `jq`:
 
 ```sh
 rimonto tickets list --status ready | jq -r '.tickets[].number'

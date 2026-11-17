@@ -1,9 +1,10 @@
 // The config file: each profile's API key, API address and extra headers.
 //   $XDG_CONFIG_HOME/rimonto/config.json, else ~/.config/rimonto/config.json; %APPDATA%\rimonto\config.json on Windows
-// It holds secrets, so it is written with mode 0600 (its folder 0700 when this creates it).
+// It holds secrets, so it is written with mode 0600 (its folder 0700 when this creates it). Windows has no such modes: there
+// the file is private because %APPDATA% is in the user's own profile folder, which other users of the computer cannot open.
 
 import { chmodSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
-import { dirname, join, win32 } from 'node:path';
+import { dirname, posix, win32 } from 'node:path';
 import { CliError } from './errors.ts';
 
 export interface Profile {
@@ -19,17 +20,19 @@ export interface Config {
 
 export const DEFAULT_PROFILE = 'default';
 
+/** The file's path on `platform`, in that platform's kind of path whatever system this runs on. */
 export function configPath(env: Record<string, string | undefined>, platform: string, home: string): string {
   if (platform === 'win32') {
     const base = env.APPDATA || win32.join(home, 'AppData', 'Roaming');
     return win32.join(base, 'rimonto', 'config.json');
   }
   const xdg = env.XDG_CONFIG_HOME;
-  const base = xdg && xdg.startsWith('/') ? xdg : join(home, '.config');
-  return join(base, 'rimonto', 'config.json');
+  const base = xdg && xdg.startsWith('/') ? xdg : posix.join(home, '.config');
+  return posix.join(base, 'rimonto', 'config.json');
 }
 
-export function readConfig(path: string, warn: (line: string) => void = () => {}): Config {
+/** Reads the file at `path`; warns on POSIX when others could read it (`platform` is the system it runs on). */
+export function readConfig(path: string, warn: (line: string) => void = () => {}, platform: string = process.platform): Config {
   let text: string;
   try {
     text = readFileSync(path, 'utf8');
@@ -43,7 +46,8 @@ export function readConfig(path: string, warn: (line: string) => void = () => {}
   } catch {
     throw new CliError(`${path} is not valid JSON`, ['Fix it by hand, or delete it and run `rimonto login` again.']);
   }
-  if (process.platform !== 'win32') {
+  // Windows has no such modes: Node reports 0666 for every file there, which would warn every time.
+  if (platform !== 'win32') {
     try {
       if (statSync(path).mode & 0o077) warn(`warning: ${path} can be read by other users; run: chmod 600 '${path}'`);
     } catch {

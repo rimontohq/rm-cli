@@ -95,9 +95,11 @@ export async function cli(argv: string[], opts: RunOptions = {}): Promise<RunRes
   const { fetch, requests } = fakeFetch(opts.handler ?? (() => json(200, {})));
   const stdin = opts.typed === undefined ? (Readable.from(opts.stdin === undefined ? [] : [opts.stdin]) as unknown as Io['stdin']) : terminal(opts.typed);
   if (opts.typed === undefined) (stdin as { isTTY?: boolean }).isTTY = false;
+  // The config in <home>/config, on this computer's system: a fake Linux with Windows' folders would take an XDG_CONFIG_HOME
+  // of C:\… for a relative one, which Linux ignores.
   const io: Io = {
     argv,
-    env: { XDG_CONFIG_HOME: join(home, 'config'), ...opts.env },
+    env: { XDG_CONFIG_HOME: join(home, 'config'), APPDATA: join(home, 'config'), ...opts.env },
     stdout: { write: (s: string) => (stdout += s), isTTY: opts.tty ?? false, columns: 200 },
     stderr: { write: (s: string) => (stderr += s), isTTY: false },
     stdin,
@@ -105,7 +107,7 @@ export async function cli(argv: string[], opts: RunOptions = {}): Promise<RunRes
     sleep: async (ms) => {
       sleeps.push(ms);
     },
-    platform: 'linux',
+    platform: process.platform,
     homedir: home,
     randomUUID: () => `00000000-0000-4000-8000-${String(++uuid).padStart(12, '0')}`,
     readFile: (path) => {

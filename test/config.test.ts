@@ -1,7 +1,7 @@
 import { chmodSync, mkdtempSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { tildePath } from '../src/auth.ts';
 import { configPath, maskKey, readConfig, writeConfig } from '../src/config.ts';
 import { DEFAULT_API_URL, parseHeader, parseHeadersEnv, resolveContext } from '../src/context.ts';
@@ -18,15 +18,51 @@ describe('the config file', () => {
     expect(configPath({ APPDATA: 'C:\\Users\\ana\\AppData\\Roaming' }, 'win32', 'C:\\Users\\ana')).toBe('C:\\Users\\ana\\AppData\\Roaming\\rimonto\\config.json');
   });
 
-  it('is written with mode 0600, in a folder with mode 0700', () => {
+  it("gives each system's kind of path on any computer, Windows too", async () => {
+    // As on Windows, where node:path is path.win32: a Linux or macOS path built with it had backslashes.
+    vi.resetModules();
+    vi.doMock('node:path', async (importOriginal) => {
+      const { win32 } = await importOriginal<typeof import('node:path')>();
+      return { ...win32, default: win32 };
+    });
+    try {
+      const onWindows = (await import('../src/config.ts')).configPath;
+      expect(onWindows({ XDG_CONFIG_HOME: '/x/conf' }, 'linux', '/home/ana')).toBe('/x/conf/rimonto/config.json');
+      expect(onWindows({}, 'darwin', '/Users/ana')).toBe('/Users/ana/.config/rimonto/config.json');
+      expect(onWindows({}, 'win32', 'C:\\Users\\ana')).toBe('C:\\Users\\ana\\AppData\\Roaming\\rimonto\\config.json');
+    } finally {
+      vi.doUnmock('node:path');
+      vi.resetModules();
+    }
+  });
+
+  it('reads back what it wrote, with no warning about its own file', () => {
+    const path = join(temp(), 'rimonto', 'config.json');
+    writeConfig(path, { profiles: { default: { api_key: 'rimonto_sk_test1234' } } });
+    const warnings: string[] = [];
+    expect(readConfig(path, (l) => warnings.push(l))).toEqual({ profiles: { default: { api_key: 'rimonto_sk_test1234' } } });
+    expect(warnings).toEqual([]);
+  });
+
+  it('does not warn on Windows, where Node reports every file as 0666', () => {
+    const path = join(temp(), 'config.json');
+    writeFileSync(path, '{"profiles":{}}');
+    chmodSync(path, 0o666);
+    const warnings: string[] = [];
+    expect(readConfig(path, (l) => warnings.push(l), 'win32')).toEqual({ profiles: {} });
+    expect(warnings).toEqual([]);
+  });
+
+  // The modes themselves exist on Linux and macOS only. On Windows the file is private by its folder: %APPDATA% is in the
+  // user's own profile, which other users of the computer cannot open.
+  it.skipIf(process.platform === 'win32')('is written with mode 0600, in a folder with mode 0700', () => {
     const path = join(temp(), 'rimonto', 'config.json');
     writeConfig(path, { profiles: { default: { api_key: 'rimonto_sk_test1234' } } });
     expect(statSync(path).mode & 0o777).toBe(0o600);
     expect(statSync(join(path, '..')).mode & 0o777).toBe(0o700);
-    expect(readConfig(path)).toEqual({ profiles: { default: { api_key: 'rimonto_sk_test1234' } } });
   });
 
-  it('tightens a file that others could read when it writes it, and warns when it reads one', () => {
+  it.skipIf(process.platform === 'win32')('tightens a file that others could read when it writes it, and warns when it reads one', () => {
     const path = join(temp(), 'config.json');
     writeFileSync(path, '{"profiles":{}}');
     chmodSync(path, 0o644);
